@@ -165,6 +165,7 @@ OBJS :=	$(OBJ_DIR)/Bitmap	\
 		$(OBJ_DIR)/PageAddUser \
 		$(OBJ_DIR)/PageModifyUser \
 		$(OBJ_DIR)/PageSearch	\
+		$(OBJ_DIR)/PageSearchRec	\
 		$(OBJ_DIR)/PageFloat	\
 		$(OBJ_DIR)/PageChnSelect	\
 		$(OBJ_DIR)/PageAudioSelect	\

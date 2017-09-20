@@ -167,7 +167,7 @@ void CCalendar::DrawSingle(int index)
 	if (flag)
 	{
 		//m_DC.SetBrush(VD_GetSysColor(COLOR_FRAME));
-		m_DC.SetBrush(VD_GetSysColor(COLOR_CTRLTEXTSELECTED));
+		m_DC.SetBrush(VD_GetSysColor(COLOR_CTRLTEXTSELECTED));//黄色
 		//m_DC.SetRgnStyle(RS_FLAT);
 	}
 	else
@@ -184,6 +184,8 @@ void CCalendar::DrawSingle(int index)
 #else
 	m_DC.Rectangle(CRect((index % 7) * (m_Rect.Width()/7) + 2, (index / 7 + 1) * TEXT_HEIGHT + 2,
 		(index % 7 + 1) * (m_Rect.Width()/7) - 2, (index / 7 + 2) * TEXT_HEIGHT - 2), 1, 1);
+
+	//显示子的时候会把上一步画的矩形框的上下边框覆盖一部分	
 	m_DC.VD_TextOut(CRect((index % 7) * (m_Rect.Width()/7), (index / 7 + 1) * TEXT_HEIGHT,
 		(index % 7 + 1) * (m_Rect.Width()/7), (index / 7 + 2) * TEXT_HEIGHT), buf);
 #endif

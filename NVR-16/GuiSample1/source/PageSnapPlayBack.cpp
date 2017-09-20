@@ -234,7 +234,7 @@ VD_BOOL CPageSnapPlayBack::UpdateData( UDM mode )
 */
 	if(UDM_OPEN == mode)
 	{
-		printf("%s PreviewSnapSet !\n", __func__);
+		//printf("%s PreviewSnapSet !\n", __func__);
 		/*
 		if (NULL == sSearchSnapResult.psRecSnapInfo)
 		{
@@ -586,7 +586,7 @@ VD_BOOL CPageSnapPlayBack::MsgProc( uint msg, uint wpa, uint lpa )
 	{
 		case XM_RBUTTONDOWN:
 			this->Close();
-			printf("%s: Close()!!!!!!\n", __func__);
+			//printf("%s: Close()!!!!!!\n", __func__);
 			break;
 		default:
     			break;
@@ -788,7 +788,7 @@ void CPageSnapPlayBack::ShowModeItem(EM_PAGE_SNAP_MODE mode, BOOL bShow)
 
 void CPageSnapPlayBack::SetWorkmode(EM_PAGE_SNAP_MODE mode)
 {	
-	printf("%s mode: %d, work_mode: %d\n", __func__, mode, work_mode);
+	//printf("%s mode: %d, work_mode: %d\n", __func__, mode, work_mode);
 	if (mode >= 0 && mode < EM_SNAP_MAX)
 	{
 		if (mode != work_mode)

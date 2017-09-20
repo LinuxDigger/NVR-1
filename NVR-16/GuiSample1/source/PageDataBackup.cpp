@@ -354,12 +354,13 @@ void CPageDataBackup::InitPageLeft1()
 	rtFloat.top = m_RectScreen.top;
 	rtFloat.bottom = m_RectScreen.bottom;
 
+#if 0
 	printf("%s TEXT_WIDTH: %d\n", __func__, TEXT_WIDTH);
 	printf("%s rtFloat.left: %d\n", __func__, rtFloat.left);
 	printf("%s rtFloat.right: %d\n", __func__, rtFloat.right);
 	printf("%s rtFloat.top: %d\n", __func__, rtFloat.top);
 	printf("%s rtFloat.bottom: %d\n", __func__, rtFloat.bottom);
-	
+#endif	
 	//printf("%s new CPageSnapPlayBack\n", __func__);
 	//m_pPageSnapPB = new CPageSnapPlayBack(rtFloat, "Snap PlayBack", NULL, this);
 
@@ -371,7 +372,7 @@ void CPageDataBackup::InitPageRight1()
 	
 	//BIZ_DO_DBG("CPageSearch::InitCalendar width %d\n",  RIGHT_PAGE_R+6 - RIGHT_PAGE_L);
 	
-	printf("Calendar rect:(%d,%d,%d,%d)\n",rtCal.left,rtCal.right,rtCal.top,rtCal.bottom);
+	//printf("Calendar rect:(%d,%d,%d,%d)\n",rtCal.left,rtCal.right,rtCal.top,rtCal.bottom);
 	
 	pCalendar = CreateCalendar(rtCal, this, NULL, (CTRLPROC)&CPageDataBackup::OnDaySelected);
 	itemsRight[1].push_back(pCalendar);

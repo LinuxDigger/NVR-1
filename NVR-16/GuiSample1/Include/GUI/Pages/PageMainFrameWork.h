@@ -9,6 +9,8 @@
 
 class CPageConfigFrameWork;
 class CPageSearch;
+class CPageSearchRec;
+
 class CPageManualAlarm;
 class CPageDataBackup;
 class CPageInfoFrameWork;
@@ -42,6 +44,7 @@ private:
 
 	CPageConfigFrameWork* m_pPageConfig;
 	CPageSearch* m_pPageSearch;
+	CPageSearchRec *m_pPageSearchRec;
 	CPageManualAlarm* m_pPageManualAlarm;
 	CPageDataBackup* m_pPageDataBackup;
 	CPageInfoFrameWork* m_pPageInfo;

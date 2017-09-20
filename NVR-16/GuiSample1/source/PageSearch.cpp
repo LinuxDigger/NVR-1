@@ -1263,8 +1263,21 @@ void CPageSearch::InitPage3()
 	printf("%s rtFloat.bottom: %d\n", __func__, rtFloat.bottom);
 	
 	printf("%s new CPageSnapPlayBack\n", __func__);
+
+	
 	m_pPageSnapPB = new CPageSnapPlayBack(rtFloat, "Snap PlayBack", NULL, this);
 	SetPage(EM_PAGE_SNAP, m_pPageSnapPB);
+
+	
+#if 0 //test
+	rtFloat.left = m_RectScreen.left;
+	rtFloat.right = m_RectScreen.right;
+	rtFloat.top = m_RectScreen.top;
+	rtFloat.bottom = m_RectScreen.top + CTRL_HEIGHT*3;
+
+	ptest =  new CPageTestColorSlider(rtFloat, "test", NULL, this);
+#endif
+	
 	
 }
 #else //原有的图片回放子页面
@@ -3610,7 +3623,8 @@ void CPageSearch::OnPG3Chn()
 
 void CPageSearch::OnClickSearchSnap()
 {
-	printf("%s() time: %u\n", __func__, time(NULL));
+#if 1	
+	//printf("%s() time: %u\n", __func__, time(NULL));
 	
 	EMBIZFILETYPE emFileType = EM_BIZFILE_SNAP;
 	u32 nMaskChn = 0;
@@ -3651,7 +3665,7 @@ void CPageSearch::OnClickSearchSnap()
 	tM.tm_wday = 0;
 	tM.tm_yday = 0;
 	sSearchPara.nStartTime = mktime(&tM);
-	printf("\t start time: %d/%d/%d %d:%d:%d\n", start.year,start.month,start.day,start.hour,start.minute,start.second);
+	//printf("\t start time: %d/%d/%d %d:%d:%d\n", start.year,start.month,start.day,start.hour,start.minute,start.second);
 
 	memset(&tM, 0, sizeof(tM));	
 	tM.tm_year = stop.year - 1900;
@@ -3664,7 +3678,7 @@ void CPageSearch::OnClickSearchSnap()
 	tM.tm_wday = 0;
 	tM.tm_yday = 0;
 	sSearchPara.nEndTime = mktime(&tM);
-	printf("\t end time: %d/%d/%d %d:%d:%d\n", stop.year,stop.month,stop.day,stop.hour,stop.minute,stop.second);
+	//printf("\t end time: %d/%d/%d %d:%d:%d\n", stop.year,stop.month,stop.day,stop.hour,stop.minute,stop.second);
 	
 	int nTimeZone = GetTimeZone();
 	sSearchPara.nStartTime -= GetTimeZoneOffset(nTimeZone);
@@ -3674,6 +3688,9 @@ void CPageSearch::OnClickSearchSnap()
 	m_pPageSnapPB->SetSearchPara(&sSearchPara);
 	m_pPageSnapPB->SetWorkmode(EM_PLAYBACK);
 
+#else //for test SliderCtrlPartColor
+
+#endif
 	//pageSnapPlayBack  open
 	SetSystemLockStatus(1);//cw_lock
 	//sBizSearchParam.nMaskType = 0xf;
@@ -3682,10 +3699,13 @@ void CPageSearch::OnClickSearchSnap()
 	this->Close();
 	//m_pParent->Close();
 	m_pPageSnapPB->SetSearchPage((CPageSearch *) this);
+	//ptest->SetSearchPage((CPageSearch *) this);//test
 	//m_pPagePlayBack->SetPlayChnNum(m_nCurPlayMode);
 	BizStopPreview();
 	
 	m_pPageSnapPB->Open();
+	//ptest->Open();//test
+	
 	//BizStartPlayback(EM_BIZPLAY_TYPE_TIME,&sBizSearchParam);
 	SetSystemLockStatus(0);
 	

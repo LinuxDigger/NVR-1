@@ -3737,6 +3737,7 @@ void CPageDesktop::InitSplitLine( int maxlines /*= 16*/, VD_COLORREF color /*= V
 	pSplit->SetBkColor(color);
 	pSplit->Show(TRUE);
 	m_vFrameSplitLine.push_back(pSplit);
+	//printf("%s nScreanHeight: %d\n", __func__, nScreanHeight);
 	pSplit = CreateStatic(CRect(0,nScreanHeight-2,nScreanWidth,nScreanHeight), this, "");
 	pSplit->SetBkColor(color);
 	pSplit->Show(TRUE);

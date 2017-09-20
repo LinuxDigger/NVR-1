@@ -2,6 +2,7 @@
 #include "GUI/Pages/PageConfigFrameWork.h"
 #include "GUI/Pages/PageManualAlarm.h"
 #include "GUI/Pages/PageSearch.h"
+#include "GUI/Pages/PageSearchRec.h"
 
 #include "GUI/Pages/PagePtzTrack.h"
 #include "GUI/Pages/PageDataBackup.h"
@@ -204,6 +205,12 @@ CPageMainFrameWork::CPageMainFrameWork( VD_PCRECT pRect,VD_PCSTR psz,VD_BITMAP* 
 	//printf("new CPageSearch\n");
 	//m_pPageSearch = new CPageSearch(CRect(0, 0, 642, 418), "&CfgPtn.DataSearch", icon_dvr, this);
 	m_pPageSearch = new CPageSearch(CRect(0, 0, 642, 418), "&CfgPtn.VideoPlayback", icon_dvr, this);
+
+	//yaogang 
+	VD_RECT	Rect;
+	CDevGraphics *pDevGraphics = CDevGraphics::instance(m_screen);
+	pDevGraphics->GetRect(&Rect);
+	m_pPageSearchRec = new CPageSearchRec(CRect(&Rect), "&CfgPtn.VideoPlayback", icon_dvr, this);
 	
 	//printf("new CPageManualAlarm\n");
 	m_pPageManualAlarm = new CPageManualAlarm(NULL, "&CfgPtn.ManualAlarm", icon_dvr, NULL);
@@ -287,9 +294,14 @@ void CPageMainFrameWork::OnClkMainItem()
 				if(1)//(author == EM_BIZ_USER_AUTHOR_YES)
 				{
 					SetSystemLockStatus(1);
+				#if 0
 					m_pPageSearch->FromMainpage();
 					m_pPageSearch->UpdateData(UDM_EMPTY);
 					m_pPageSearch->Open();
+				#else
+					//m_pPageSearchRec->UpdateData(UDM_EMPTY);
+					m_pPageSearchRec->Open();
+				#endif
 					SetSystemLockStatus(0);
 					BizGUiWriteLog(BIZ_LOG_MASTER_SEARCH, BIZ_LOG_SLAVE_SEARCH_DATA_BYTIME);	
 				}

@@ -25,14 +25,8 @@
 
 class Range
 {
-friend VD_BOOL isInRange(int val, const Range &r);//val 是否在this 中
-friend VD_BOOL isInRangeWithoutStart(int val, const Range &r);
-friend VD_BOOL isInRangeWithoutEnd(int val, const Range &r);
-friend VD_BOOL isInRangeWithoutBoth(int val, const Range &r);
-friend VD_BOOL operator ==(const Range &lhs, const Range &rhs);
-friend VD_BOOL operator !=(const Range &lhs, const Range &rhs);
-
 public:
+	Range();
 	Range(int s, int e);
 	~Range();
 	VD_BOOL isInRange(const Range &r) const;//this 是否在r 中
@@ -41,13 +35,39 @@ public:
 
 	int start;
 	int end;
+
+	
+/*
+	点与区域的位置关系
+	pos < r.start			left
+	pos = r.start			equal left
+	pos (r.start, r.end)		inside
+	pos = r.end 			equal right
+	pos > r.end 			right
+*/	
+	enum em_point_pos
+	{
+		em_left = 0,
+		em_equal_start,
+		em_inside,
+		em_equal_end,
+		em_right,
+	};
 };
+
+VD_BOOL isInRange(int val, const Range &r);//val 是否在this 中
+VD_BOOL isInRangeWithoutStart(int val, const Range &r);
+VD_BOOL isInRangeWithoutEnd(int val, const Range &r);
+VD_BOOL isInRangeWithoutBoth(int val, const Range &r);
+VD_BOOL operator ==(const Range &lhs, const Range &rhs);
+VD_BOOL operator !=(const Range &lhs, const Range &rhs);
+int pointAndRange(int val, const Range &r);
 
 
 class CSliderCtrlPartColor : public CItem
 {
 public:
-	CSliderCtrlPartColor(VD_PCRECT pRect, CPage * pParent, int vmin = 0,int vmax = 100, int SplitLineMax=10, CTRLPROC vproc = NULL);
+	CSliderCtrlPartColor(VD_PCRECT pRect, CPage * pParent, int vmin = 0,int vmax = 100, int SplitLineNum=10, CTRLPROC vproc = NULL);
 	virtual ~CSliderCtrlPartColor();
 	void Draw();
 	VD_BOOL MsgProc(uint msg, uint wpa, uint lpa);
@@ -68,7 +88,7 @@ public:
 	int SetDisplayRange(const Range &r, int split_line_num);
 	
 	//设置着色区域(有录像的时间段)
-	void SetColorRange(std::vector<Range> &vr);
+	int SetColorRange(const std::vector<Range> &vr);
 
 	void Select(VD_BOOL flag)
 	{
@@ -77,7 +97,8 @@ public:
 
 private:	
 	void DrawBackground();
-	void DrawRange();
+	void _DrawColorRange(int start, int end);
+	void DrawColorRange();
 	void DrawSplitLine();
 	void UpdateTracker();
 	void DrawTracker();
@@ -100,7 +121,7 @@ private:
 
 	//分割线(刻度)
 	//void InitSplitLine(int maxlines = 16, VD_COLORREF color = VD_RGB(232,232,232));
-	int m_iSplitLineMax;
+	//int m_iSplitLineMax;
 	int m_iSplitLineNum;//等分进度条24hr/24, 2hr/12, 1hr/12, 30min/10
 	VD_COLORREF m_ColorSplitLine;
 	//std::vector<CStatic*> m_vSplitLine;	

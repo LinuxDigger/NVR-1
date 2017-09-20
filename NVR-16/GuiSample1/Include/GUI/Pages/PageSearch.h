@@ -7,6 +7,8 @@
 #include "PageFloat.h"
 #include "PagePlayBackFrameWork.h"
 #include "PageSnapPlayBack.h"
+#include "PageTestColorSlider.h"
+
 
 #define SEARCH_SUBPAGES		4
 #if 1//csp modify
@@ -189,6 +191,7 @@ private:
 	CStatic* pPG3StaticChn[4*8];
 	CButton* pBtPage3Search;
 	CPageSnapPlayBack *m_pPageSnapPB;
+	CPageTestColorSlider *ptest;
 	void OnClickSearchSnap();
 	void OnPG3AllChn();
 	void OnPG3Chn();
