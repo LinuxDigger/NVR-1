@@ -468,13 +468,13 @@ s32 SysComplexDiskSearch(SBizDiskSearch* pSPara)
 	SSearchPara* psSearchPara = (SSearchPara *)pSPara->psSearchPara;
 	SSearchResult* psSearchResult = (SSearchResult *)pSPara->psSearchResult;
 	u16 nMaxFileNum = pSPara->nMaxFileNum;
-    
+/*	
 	printf("emFileType %d\n", emFileType);	//EM_BIZFILE_SNAP
 	printf("mask type %d\n", psSearchPara->nMaskType);
 	printf("nMaskChn %d\n", psSearchPara->nMaskChn);
 	printf("nStartTime %u\n", psSearchPara->nStartTime);
 	printf("nEndTime %u\n", psSearchPara->nEndTime);
-	
+*/	
 	return ModSysComplexDMSearch(emFileType, psSearchPara, psSearchResult, nMaxFileNum);
 }
 

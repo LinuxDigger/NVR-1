@@ -2250,6 +2250,15 @@ void CPageSearch::SearchFilesWithEvent()
 		{
 			MouseMoveToLine(-1);//cw_tab
 			pTips->SetText("&CfgPtn.DoubleClickToPlay");
+
+			#if 1
+			printf("search file result: %d\n", sSearchResult0.nFileNum);
+			SBizRecfileInfo *psRecfileInfo = sSearchResult0.psRecfileInfo;
+			for (int i=0; i<sSearchResult0.nFileNum; i++)
+			{
+				printf("%d, chn:%d, start: %u, end: %u\n", i, psRecfileInfo[i].nChn, psRecfileInfo[i].nStartTime, psRecfileInfo[i].nEndTime);
+			}
+			#endif
 		}
 		else
 		{
@@ -2318,12 +2327,12 @@ void CPageSearch::SetLineOfPage1(int line, SBizRecfileInfo* info)
 	char szTime[32] = {0};
 	memset(szTime, 0, sizeof(szTime));
 	GetTimeForBackup(info->nStartTime, szTime);	
-	printf("chn[%02d], %s, %d\n",info->nChn,szTime,info->nStartTime);//捕获信息用，这次不要关闭
+	//printf("chn[%02d], %s, %d\n",info->nChn,szTime,info->nStartTime);//捕获信息用，这次不要关闭
 	pBegin1[line]->SetText(szTime);
 	
 	memset(szTime, 0, sizeof(szTime));
 	GetTimeForBackup(info->nEndTime, szTime);
-	printf("chn[%02d], %s, %d\n\n",info->nChn,szTime,info->nEndTime);
+	//printf("chn[%02d], %s, %d\n\n",info->nChn,szTime,info->nEndTime);
 	pEnd1[line]->SetText(szTime);
 	
 	char* type[5] = {

@@ -15492,7 +15492,7 @@ void GetTimeForBackup( u32 t, char* szTime )//时间和日期
 			ptm->tm_min,// = min;
 			ptm->tm_sec// = s;
 		);
-		printf("%d,%d,%04d-%02d-%02d %02d:%02d:%02d, %s\n",t,tmpT,ptm->tm_year,ptm->tm_mon,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,tmp);
+		//printf("%d,%d,%04d-%02d-%02d %02d:%02d:%02d, %s\n",t,tmpT,ptm->tm_year,ptm->tm_mon,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,tmp);
 		strcpy(szTime, tmp);
 	}
 }

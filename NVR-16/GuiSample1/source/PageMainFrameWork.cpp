@@ -24,7 +24,8 @@
 
 enum{//与下面的数组一一对应
 	CONFIG_BUTTON_CONFIG,
-	CONFIG_BUTTON_SEARCH,
+	CONFIG_BUTTON_SEARCH_REC,
+	CONFIG_BUTTON_SEARCH_SNAP,
 	CONFIG_BUTTON_BACKUP,
 	CONFIG_BUTTON_INFO,	
 	//CONFIG_BUTTON_ALARM, 临时关闭手动报警
@@ -42,6 +43,7 @@ char* mainShortcut[CONFIG_BUTTON_NUM] = {
 	//yaogang modify 20141106
 	//"&CfgPtn.DataSearch",	
 	"&CfgPtn.VideoPlayback",
+	"&CfgPtn.VideoPlayback",
 	"&CfgPtn.DataBackup",
 	"&CfgPtn.Information",
 	//"&CfgPtn.ManualAlarm", 临时关闭手动报警
@@ -55,7 +57,8 @@ char* mainShortcut[CONFIG_BUTTON_NUM] = {
 
 char* mainShortcutBmpName[CONFIG_BUTTON_NUM+1][2] = {    
 	{DATA_DIR"/temp/config.bmp",	DATA_DIR"/temp/config_f.bmp"},
-	{DATA_DIR"/temp/search.bmp",	DATA_DIR"/temp/search_f.bmp"},	
+	{DATA_DIR"/temp/search.bmp",	DATA_DIR"/temp/search_f.bmp"},
+	{DATA_DIR"/temp/search.bmp",	DATA_DIR"/temp/search_f.bmp"},
 	{DATA_DIR"/temp/backup.bmp",	DATA_DIR"/temp/backup_f.bmp"},
 	{DATA_DIR"/temp/info.bmp",		DATA_DIR"/temp/info_f.bmp"},
 	//{DATA_DIR"/temp/info.bmp",		DATA_DIR"/temp/info_f.bmp"},
@@ -115,7 +118,8 @@ CPageMainFrameWork::CPageMainFrameWork( VD_PCRECT pRect,VD_PCSTR psz,VD_BITMAP* 
 		//printf("%s i: %d, cnt: %d\n", __func__, i, cnt);
 		if (nNVROrDecoder != 1)//== 2
 		{
-			if ( i == CONFIG_BUTTON_SEARCH \
+			if ( i == CONFIG_BUTTON_SEARCH_REC \
+				|| i == CONFIG_BUTTON_SEARCH_SNAP \
 				|| i == CONFIG_BUTTON_BACKUP \
 				|| i == CONFIG_BUTTON_DISK )
 			{
@@ -288,7 +292,7 @@ void CPageMainFrameWork::OnClkMainItem()
 					//printf("CONFIG_BUTTON_CONFIG-2^^^^^^^%s,%d\n",__func__,__LINE__);
 				}
 			}break;
-			case CONFIG_BUTTON_SEARCH:
+			case CONFIG_BUTTON_SEARCH_REC:
 			{
 				//EMBIZUSERCHECKAUTHOR author = BizUserCheckAuthority(EM_BIZ_USER_AUTHOR_DATA_MANAGE,NULL,g_nUserId);
 				if(1)//(author == EM_BIZ_USER_AUTHOR_YES)
@@ -299,7 +303,29 @@ void CPageMainFrameWork::OnClkMainItem()
 					m_pPageSearch->UpdateData(UDM_EMPTY);
 					m_pPageSearch->Open();
 				#else
-					//m_pPageSearchRec->UpdateData(UDM_EMPTY);
+					m_pPageSearchRec->UpdateData(UDM_EMPTY);
+					m_pPageSearchRec->Open();
+				#endif
+					SetSystemLockStatus(0);
+					BizGUiWriteLog(BIZ_LOG_MASTER_SEARCH, BIZ_LOG_SLAVE_SEARCH_DATA_BYTIME);	
+				}
+				else //if(author == EM_BIZ_USER_AUTHOR_NO)
+				{
+					MessageBox("&CfgPtn.NoAuthority", "&CfgPtn.WARNING"  , MB_OK|MB_ICONWARNING);
+				}
+			}break;
+			case CONFIG_BUTTON_SEARCH_SNAP:
+			{
+				//EMBIZUSERCHECKAUTHOR author = BizUserCheckAuthority(EM_BIZ_USER_AUTHOR_DATA_MANAGE,NULL,g_nUserId);
+				if(1)//(author == EM_BIZ_USER_AUTHOR_YES)
+				{
+					SetSystemLockStatus(1);
+				#if 1
+					m_pPageSearch->FromMainpage();
+					m_pPageSearch->UpdateData(UDM_EMPTY);
+					m_pPageSearch->Open();
+				#else
+					m_pPageSearchRec->UpdateData(UDM_EMPTY);
 					m_pPageSearchRec->Open();
 				#endif
 					SetSystemLockStatus(0);

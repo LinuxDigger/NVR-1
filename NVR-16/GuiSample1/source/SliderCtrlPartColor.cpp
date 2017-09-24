@@ -424,14 +424,17 @@ int CSliderCtrlPartColor::SetDisplayRange(const Range &r, int split_line_num)
 //设置着色区域(有录像的时间段)
 int CSliderCtrlPartColor::SetColorRange(const std::vector<Range> &vr)
 {
+	//printf("%s\n", __func__);
 	std::vector<Range>::const_iterator c_iter;
 	int pre_end = -1;//前一区域结束位置
 
+#if 0 //空集即为不进行着色
 	if (vr.empty())
 	{
 		printf("%s: vector Range empty\n", __func__);
 		return 1;
 	}
+#endif
 
 	for (c_iter = vr.begin(); c_iter != vr.end(); ++c_iter)
 	{
@@ -458,6 +461,8 @@ int CSliderCtrlPartColor::SetColorRange(const std::vector<Range> &vr)
 	}
 	
 	m_vRange = vr;
+	Draw();
+	
 	return 0;
 }
 
@@ -484,7 +489,7 @@ void CSliderCtrlPartColor::DrawBackground()
 	m_DC.SetRgnStyle(RS_FLAT);
 	m_DC.Rectangle(CRect(0,0,m_Rect.Width(),m_Rect.Height()));
 
-	//下划线
+	//下划线为了和下一个进度条分隔
 	m_DC.SetPen(VD_GetSysColor(VD_COLOR_WINDOW), VD_PS_SOLID, 1);
 	m_DC.MoveTo(0, m_Rect.Height()-1);
 	m_DC.LineTo(m_Rect.Width(), m_Rect.Height()-1);
@@ -507,7 +512,7 @@ void CSliderCtrlPartColor::_DrawColorRange(int start, int end)
 	//val --> pix pos
 	start_offset = (float)(m_iSliderWidth) / m_sDispRange.Width() * (start - m_sDispRange.start);
 	end_offset = (float)(m_iSliderWidth) / m_sDispRange.Width() * (end - m_sDispRange.start);
-	m_DC.Rectangle(CRect(start_offset, 0, end_offset, m_Rect.Height()));
+	m_DC.Rectangle(CRect(start_offset, 0, end_offset, m_Rect.Height()-1));
 	
 	m_DC.UnLock();
 }
@@ -524,6 +529,7 @@ pos	> r.end			right
 */
 void CSliderCtrlPartColor::DrawColorRange()
 {
+	//printf("%s\n", __func__);
 	CGuard guard(m_Mutex);
 	std::vector<Range>::const_iterator c_iter;
 	int start_relative_pos;//m_sDispRange.start 相对于c_iter 区间的位置关系
@@ -550,10 +556,10 @@ void CSliderCtrlPartColor::DrawColorRange()
 		start_relative_pos = pointAndRange(m_sDispRange.start, *c_iter);
 		end_relative_pos = pointAndRange(m_sDispRange.end, *c_iter);
 
-		printf("%s: colorRange[%d, %d], dispRange[%d, %d], start_relative_pos: %d, end_relative_pos: %d\n",
-			__func__, c_iter->start, c_iter->end, 
-			m_sDispRange.start, m_sDispRange.end, 
-			start_relative_pos, end_relative_pos);				
+		//printf("%s: colorRange[%d, %d], dispRange[%d, %d], start_relative_pos: %d, end_relative_pos: %d\n",
+		//	__func__, c_iter->start, c_iter->end, 
+		//	m_sDispRange.start, m_sDispRange.end, 
+		//	start_relative_pos, end_relative_pos);				
 
 		if (!b_found_start)
 		{
@@ -709,6 +715,11 @@ void CSliderCtrlPartColor::DrawSplitLine()
 void CSliderCtrlPartColor::UpdateTracker()
 {
 	CGuard guard(m_Mutex);
+	if (!m_bTracker)
+	{
+		return ;
+	}
+	
 	newpos = curpos;
 	
 	tracker_offset = (double)(m_iSliderWidth - tracker_width) * (curpos- m_sDispRange.start) / m_sDispRange.Width()+0.5;
@@ -717,6 +728,11 @@ void CSliderCtrlPartColor::UpdateTracker()
 void CSliderCtrlPartColor::DrawTracker()
 {
 	CGuard guard(m_Mutex);
+	if (!m_bTracker)
+	{
+		return ;
+	}
+	
 	m_DC.Lock();
 	
 	m_DC.SetRgnStyle(RS_FLAT);

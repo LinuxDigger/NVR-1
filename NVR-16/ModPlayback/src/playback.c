@@ -399,6 +399,8 @@ s32 SearchRecFiles(SPlayBackManager* pSPbMgr,SPBSearchPara* pSearchParam)
 		//printf("nRecFileInfos[%d].nChn = %d, nMaxChnNum = %d\n", i, nRecFileInfos[i].nChn, pSPbMgr->nMaxChnNum);
 		if(nRecFileInfos[i].nChn <= pSPbMgr->nMaxChnNum)
 		{
+			//printf("%s file no: %d start time: %u, end time: %u\n",
+			//	__func__, i, nRecFileInfos[i].nStartTime, nRecFileInfos[i].nEndTime);
 			memcpy(&pSPbMgr->aPlaybackChnInfos[nRecFileInfos[i].nChn-1].aRecFileInfos[pSPbMgr->aPlaybackChnInfos[nRecFileInfos[i].nChn-1].nRealFileNums], &nRecFileInfos[i], sizeof(SPBRecfileInfo));
 			pSPbMgr->aPlaybackChnInfos[nRecFileInfos[i].nChn-1].nRealFileNums++;
 		}
