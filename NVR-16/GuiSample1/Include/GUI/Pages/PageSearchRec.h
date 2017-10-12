@@ -5,9 +5,6 @@
 #include "PageFloat.h"
 #include "biz.h"
 
-#define RIGHT_PAGE_WIDTH	(204)
-#define BOTTOM_PAGE_HEIGHT	(10/*上边沿*/+24/*刻度值*/+12*4/*进度条*/+24/*下边沿*/)	//106
-
 #if 0
 typedef struct 
 {

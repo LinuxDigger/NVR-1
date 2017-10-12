@@ -82,12 +82,13 @@ public:
 	void SetColor(VD_COLORREF color /*= VD_RGB(232,232,232)*/ );
 	void SetBlankColor(VD_COLORREF color /*= VD_RGB(232,232,232)*/ );
 	//把指定区域放大显示
+	int GetDisplayRange(Range &r);
 	int SetDisplayRange(const Range &r);
 	//同时改变比例尺和分割线数量
 	//eg: playback module 24hr/2hr/1hr/30min
 	int SetDisplayRange(const Range &r, int split_line_num);
 	
-	//设置着色区域(有录像的时间段)
+	//设置着色区域(一天中有录像的时间段)
 	int SetColorRange(const std::vector<Range> &vr);
 
 	void Select(VD_BOOL flag)
@@ -129,6 +130,7 @@ private:
 	//着色区域
 	VD_COLORREF m_ColorBlank;	//空白区域颜色   无录像
 	VD_COLORREF m_Color;		//着色区域	有录像
+	VD_COLORREF m_ColorTracker;
 	std::vector<Range> m_vRange;
 
 	//把指定区域放大显示

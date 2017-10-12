@@ -96,7 +96,8 @@ CPageSearch::CPageSearch( VD_PCRECT pRect,VD_PCSTR psz,VD_BITMAP* icon /*= NULL*
 	int i;
 	for(i = 0; i<SEARCH_SUBPAGES; i++)
 	{
-		if(i > 3 ||i==2)//yzw 不初始化"&CfgPtn.File",
+		//if(i > 3 ||i==2)//yzw 不初始化"&CfgPtn.File",
+		if (3 != i)
 		{
 			pButton[i] = NULL;//csp modify
 			continue;
@@ -158,8 +159,9 @@ CPageSearch::CPageSearch( VD_PCRECT pRect,VD_PCSTR psz,VD_BITMAP* icon /*= NULL*
 	//printf("file:%s, function:%s, line:%d\n", __FILE__, __FUNCTION__, __LINE__);
 	
 	ShowSubPage(0,TRUE);
-	
-	pButton[0]->Enable(FALSE);
+
+	//if (pButton[0])
+		pButton[3]->Enable(FALSE);
 	//printf("%s yg 4\n", __func__);
 }
 
@@ -1836,7 +1838,7 @@ void CPageSearch::StartPlay2()
 		this->Close();
 		//this->m_pParent->Close();//cw_test
 		
-		m_pPagePlayBack->SetSearchPage((CPageSearch *)this);
+		m_pPagePlayBack->SetSearchPage((CPage *)this);
 		m_pPagePlayBack->SetPlayChnNum(m_nCurPlayMode);
 		
 		BizStopPreview();
@@ -1878,6 +1880,9 @@ void CPageSearch::OnClickStartPlay()
 	
 	SBizSearchPara sBizSearchParam;
 	memset(&sBizSearchParam,0,sizeof(sBizSearchParam));
+
+	SBizPlaybackInfo pb_info;
+	memset(&pb_info, 0, sizeof(SBizPlaybackInfo));
 	
 #if 1
 	SYSTEM_TIME start;
@@ -1912,6 +1917,7 @@ void CPageSearch::OnClickStartPlay()
 	tM.tm_wday = 0;
 	tM.tm_yday = 0;
 	sBizSearchParam.nEndTime = mktime(&tM);
+	
 	//printf("%s stop.year: %d\n", __func__, tM.tm_year);
 	
 	//csp modify 20131213
@@ -1919,7 +1925,9 @@ void CPageSearch::OnClickStartPlay()
 	//yaogang 20150729
 	sBizSearchParam.nStartTime -= GetTimeZoneOffset(nTimeZone);
 	sBizSearchParam.nEndTime -= GetTimeZoneOffset(nTimeZone);
-	
+
+	pb_info.nStartTime = sBizSearchParam.nStartTime;
+	pb_info.nEndTime = sBizSearchParam.nEndTime;
 	//printf("start:%ld, end:%ld\n", sBizSearchParam.nStartTime, sBizSearchParam.nEndTime);
 #else
 	u32 nBgnTime;
@@ -1958,7 +1966,7 @@ void CPageSearch::OnClickStartPlay()
 	
 	sBizSearchParam.nEndTime = mktime(&tmstrTmp);
 #endif
-	
+	u8 windowChn[16];
 	// start play
 	if(sBizSearchParam.nEndTime>sBizSearchParam.nStartTime)
 	{
@@ -1974,6 +1982,8 @@ void CPageSearch::OnClickStartPlay()
 				if(pPG0ChkChn[i*5+j]->GetValue())
 				{
 					sBizSearchParam.nMaskChn |= (1 << (i*4+j-1));
+
+					windowChn[num] = i*4+j-1;
 					num++;
 				}
 			}
@@ -2012,14 +2022,20 @@ void CPageSearch::OnClickStartPlay()
 			{
 				return;
 			}
+
+			pb_info.nPlayChn = windowChn;
+			pb_info.nPlayNum = m_nCurPlayMode;
 		}
 		SetSystemLockStatus(1);//cw_lock
 		sBizSearchParam.nMaskType = 0xf;
+		pb_info.nMaskType = 0xf;
+		BizPlaybackSetInfo(&pb_info);
+		
 		CPage** page = GetPage();//cw_rec
 		((CPageDesktop*)page[EM_PAGE_DESKTOP])->SetModePlaying();
 		this->Close();
 		//this->m_pParent->Close();//cw_test
-		m_pPagePlayBack->SetSearchPage((CPageSearch *) this);
+		m_pPagePlayBack->SetSearchPage((CPage *) this);
 		m_pPagePlayBack->SetPlayChnNum(m_nCurPlayMode);
 		BizStopPreview();
 		m_pPagePlayBack->Open();
@@ -3444,7 +3460,7 @@ void CPageSearch::PlayFile(int tabPage, int nId)
 		this->Close();
 		//this->m_pParent->Show(FALSE);//cw_test  this->m_pParent->Close();
 		//m_pPagePlayBack->SetRect(&pbFloat,TRUE);
-		m_pPagePlayBack->SetSearchPage((CPageSearch *) this);
+		m_pPagePlayBack->SetSearchPage((CPage *) this);
 		m_pPagePlayBack->SetPlayChnNum(1);
 		//m_pPagePlayBack->SetPreviewMode(EM_BIZPREVIEW_4SPLITS);	
 		BizStopPreview();				
@@ -3460,7 +3476,7 @@ void CPageSearch::PlayFile(int tabPage, int nId)
 		this->Close();
 		//this->m_pParent->Show(FALSE);//cw_test  this->m_pParent->Close();
 		//m_pPagePlayBack->SetRect(&pbFloat,TRUE);
-		m_pPagePlayBack->SetSearchPage((CPageSearch *) this);
+		m_pPagePlayBack->SetSearchPage((CPage *) this);
 		m_pPagePlayBack->SetPlayChnNum(1);
 		//m_pPagePlayBack->SetPreviewMode(EM_BIZPREVIEW_4SPLITS);	
 		BizStopPreview();

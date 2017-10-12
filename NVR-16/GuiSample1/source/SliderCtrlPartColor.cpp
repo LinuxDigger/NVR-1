@@ -184,6 +184,7 @@ m_iSplitLineNum(SplitLineNum),
 m_ColorSplitLine(VD_RGB(102, 102, 102)),
 m_ColorBlank(VD_RGB(200, 200, 200)),
 m_Color(VD_RGB(0, 174, 255)),
+m_ColorTracker(VD_RGB(255, 0, 0)),
 m_sDispRange(m_sRealRange)
 {
 	m_iSliderWidth = m_Rect.Width();
@@ -202,6 +203,7 @@ m_sDispRange(m_sRealRange)
 		m_vSplitLine.push_back(pSplit);
 	}
 */
+	UpdateTracker();
 }
 
 CSliderCtrlPartColor::~CSliderCtrlPartColor()
@@ -249,7 +251,7 @@ int CSliderCtrlPartColor::SetPos(int pos)
 	UpdateTracker();
 	Draw();
 
-	printf("%s over\n", __func__);
+	//printf("%s over\n", __func__);
 	
 	return 0;
 }
@@ -337,6 +339,15 @@ void CSliderCtrlPartColor::SetBlankColor(VD_COLORREF color /*= VD_RGB(232,232,23
 }
 
 //把指定区域放大显示
+int CSliderCtrlPartColor::GetDisplayRange(Range &r)
+{
+	CGuard guard(m_Mutex);
+
+	r = m_sDispRange;
+
+	return 0;
+}
+
 int CSliderCtrlPartColor::SetDisplayRange(const Range &r)
 {
 	CGuard guard(m_Mutex);
@@ -353,14 +364,14 @@ int CSliderCtrlPartColor::SetDisplayRange(const Range &r)
 			__func__, r.start, r.end, m_sRealRange.start, m_sRealRange.end);
 		return 1;
 	}
-
+#if 0
 	if (!isInRange(curpos, r))//游标不在显示区域内
 	{
 		printf("%s: curpos: %d not inside Range[%d, %d]\n", 
 			__func__, curpos, r.start, r.end);
 		return 1;
 	}
-	 
+#endif	
 	if (r == m_sDispRange)
 	{
 		return 0;
@@ -369,7 +380,7 @@ int CSliderCtrlPartColor::SetDisplayRange(const Range &r)
 	m_sDispRange = r;
 	UpdateTracker();//更新游标位置。显示区域改变，就算游标值不变，位置也会变
 	Draw();
-	printf("%s over\n", __func__);
+	//printf("%s over\n", __func__);
 	return 0;
 }
 
@@ -393,13 +404,14 @@ int CSliderCtrlPartColor::SetDisplayRange(const Range &r, int split_line_num)
 		return 1;
 	}
 
+#if 0
 	if (!isInRange(curpos, r))//游标不在显示区域内
 	{
 		printf("%s: curpos: %d not inside Range[%d, %d]\n", 
 			__func__, curpos, r.start, r.end);
 		return 1;
 	}
-	
+#endif	
 	if (r != m_sDispRange)
 	{
 		m_sDispRange = r;
@@ -417,7 +429,7 @@ int CSliderCtrlPartColor::SetDisplayRange(const Range &r, int split_line_num)
 	{
 		Draw();
 	}
-	printf("%s over\n", __func__);
+	//printf("%s over\n", __func__);
 	return 0;
 }
 
@@ -469,6 +481,12 @@ int CSliderCtrlPartColor::SetColorRange(const std::vector<Range> &vr)
 
 void CSliderCtrlPartColor::Draw()
 {
+	
+	if(!DrawCheck())
+	{
+		return;
+	}
+	
 	DrawBackground();
 	DrawColorRange();
 	DrawSplitLine();
@@ -732,9 +750,11 @@ void CSliderCtrlPartColor::DrawTracker()
 	{
 		return ;
 	}
+	//printf("%s\n", __func__);
 	
 	m_DC.Lock();
-	
+
+	m_DC.SetBrush(m_ColorTracker);
 	m_DC.SetRgnStyle(RS_FLAT);
 	m_DC.Rectangle(CRect(tracker_offset, 0, tracker_offset + tracker_width, m_Rect.Height()-1));
 	

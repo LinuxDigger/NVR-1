@@ -43,7 +43,7 @@ char* mainShortcut[CONFIG_BUTTON_NUM] = {
 	//yaogang modify 20141106
 	//"&CfgPtn.DataSearch",	
 	"&CfgPtn.VideoPlayback",
-	"&CfgPtn.VideoPlayback",
+	"&CfgPtn.ImagePlayback",
 	"&CfgPtn.DataBackup",
 	"&CfgPtn.Information",
 	//"&CfgPtn.ManualAlarm", 临时关闭手动报警
@@ -208,7 +208,7 @@ CPageMainFrameWork::CPageMainFrameWork( VD_PCRECT pRect,VD_PCSTR psz,VD_BITMAP* 
 	//yaogang modify 20141106
 	//printf("new CPageSearch\n");
 	//m_pPageSearch = new CPageSearch(CRect(0, 0, 642, 418), "&CfgPtn.DataSearch", icon_dvr, this);
-	m_pPageSearch = new CPageSearch(CRect(0, 0, 642, 418), "&CfgPtn.VideoPlayback", icon_dvr, this);
+	m_pPageSearch = new CPageSearch(CRect(0, 0, 642, 418), "&CfgPtn.ImagePlayback", icon_dvr, this);
 
 	//yaogang 
 	VD_RECT	Rect;

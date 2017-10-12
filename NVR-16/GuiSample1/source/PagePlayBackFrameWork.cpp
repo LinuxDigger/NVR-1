@@ -33,6 +33,19 @@ char *shortcutBmpName[MAX_MAIN_ITEM][2] = {
 };
 */
 
+#define BOTTOM_PAGE_HEIGHT  (10/*上边沿*/+ 32/*按键+间隔*/ +24/*刻度值*/+12*4/*进度条*/+24/*下边沿*/)
+
+//m_SliderRangeMode
+enum{
+	EM_SLIDER_MODE_24HR,
+	EM_SLIDER_MODE_2HR,
+	EM_SLIDER_MODE_1HR,
+	EM_SLIDER_MODE_30MIN
+};
+//进度条均分多少份，依赖EM_SLIDER_MODE_XX
+const int split_line_num[] = {24, 12, 12, 10};
+
+
 enum{//与下面的数组一一对应
 	PB_BUTTON_PAUSE,
 	PB_BUTTON_STOP,
@@ -51,6 +64,10 @@ enum{//与下面的数组一一对应
 	PB_BUTTON_EXIT,
 	PB_BUTTON_PRESECT,
 	PB_BUTTON_NEXTSECT,
+	PB_BUTTON_24HR,
+	PB_BUTTON_2HR,
+	PB_BUTTON_1HR,
+	PB_BUTTON_30M,	
 };
 
 #define PB_BMP_NUM  17
@@ -90,6 +107,7 @@ static int GetMaxChnNum()
 
 CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*= NULL*/,VD_BITMAP* icon /*= NULL*/,CPage * pParent /*= NULL*/, uint vstyle /*= 0*/ )
 :CPageFloat(pRect, pParent)//,m_Mutex(MUTEX_RECURSIVE)//csp modify 20121118
+,m_Mutex(MUTEX_FAST)
 {
 	m_nIsFinished = 1;//csp modify 20121118
 	
@@ -119,7 +137,7 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 	int rd = 10;
 	int space = 20;
 	CRect rtTmp;
-	rtTmp.left = 41;
+	rtTmp.left = 10;//41;
 	rtTmp.top = 7;
 	
 	SetMargin(0,0,0,0);
@@ -131,6 +149,7 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 	pBmpAudioMute_f = VD_LoadBitmap(DATA_DIR"/temp/play_audio_m_f.bmp");
 	
 	int i;
+	//播放、停止、帧进、快进
 	for (i = 0; i<4; i++)
 	{
 		pBmpButtonNormal[i] = VD_LoadBitmap(pbBmpName[i][0]);
@@ -152,7 +171,8 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 		
 		rtTmp.left +=10+space;
 	}
-	
+
+	//快进速度设置按键(三角)
 	pBmpButtonNormal[i] = VD_LoadBitmap(pbBmpName[i][0]);
 	pBmpButtonSelect[i] = VD_LoadBitmap(pbBmpName[i][1]);
     int FastforwarLeft = rtTmp.left;
@@ -172,7 +192,8 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 	
 	rtTmp.left += space-3;
 	i++;
-	
+
+	//快退
 	pBmpButtonNormal[i] = VD_LoadBitmap(pbBmpName[i][0]);
 	pBmpButtonSelect[i] = VD_LoadBitmap(pbBmpName[i][1]);
 	pButton[i] = CreateButton(CRect(rtTmp.left, rtTmp.top , 
@@ -191,7 +212,8 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 	
 	rtTmp.left += 10+space;
 	i++;
-
+	
+	//快退速度设置按键(三角)
 	pBmpButtonNormal[i] = VD_LoadBitmap(pbBmpName[i][0]);
 	pBmpButtonSelect[i] = VD_LoadBitmap(pbBmpName[i][1]);
 	pButton[i] = CreateButton(CRect(rtTmp.left, rtTmp.top +4, 
@@ -208,8 +230,17 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 	{
 		pButton[i]->SetBitmap(pBmpButtonNormal[i], pBmpButtonSelect[i], pBmpButtonSelect[i]);
 	}
-	
-	rtTmp.left += space+30;
+
+	//yaogang  显示当前播放速度
+	rtTmp.left += 10+space;//space-3;
+	//rtTmp.left = ((pRect->right - pRect->left) >> 1)-15;
+
+	m_pStatic[1] = CreateStatic(CRect(rtTmp.left, rtTmp.top , 
+								rtTmp.left+TEXT_WIDTH*3, rtTmp.top+22), this, ">>1X");
+	m_pStatic[1]->SetTextAlign(VD_TA_LEFT);
+
+	//回放画面数选择按键组(单画面、单画面选择三角、4画面)
+	rtTmp.left += TEXT_WIDTH*3;
 	i++;
 
 	int Triangle2Right;
@@ -260,12 +291,10 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 		}
 	}
 
-	rtTmp.left += 10+space;
-	
+	//rtTmp.left += 10+space;
+	//zoom and color setup not support	
 	for (; i<12; i++)
 	{
-		//zoom and color setup not support
-		
 		pBmpButtonNormal[i] = VD_LoadBitmap(pbBmpName[i][0]);
 		pBmpButtonSelect[i] = VD_LoadBitmap(pbBmpName[i][1]);
 		pButton[i] = CreateButton(CRect(rtTmp.left, rtTmp.top, 
@@ -285,9 +314,15 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 		
 		rtTmp.left +=10+space;
 	}
-
-	rtTmp.left = pRect->right - pRect->left - 41 - 3 * 34; //zlbfix20110828 //rtTmp.left +=110;
-
+	
+	//播放时间
+	m_pStatic[3] = CreateStatic(CRect(rtTmp.left, rtTmp.top , 
+								rtTmp.left+TEXT_WIDTH*3, rtTmp.top+22), this, ""/*"15:29:59"*/);
+	m_pStatic[3]->SetTextAlign(VD_TA_RIGHT);
+	
+	//声音、最小化、关闭
+	rtTmp.left = pRect->right - pRect->left - 10/*41*/ - 3 * 34; //zlbfix20110828 //rtTmp.left +=110;
+	int slider_range_btn_left = rtTmp.left-10-4*TEXT_WIDTH*3/2;
 	for (; i<15; i++)
 	{
 		pBmpButtonNormal[i] = VD_LoadBitmap(pbBmpName[i][0]);
@@ -310,10 +345,10 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 		rtTmp.left +=10+24;
 	}
 
+#if 0
+	//前一段视频按键i = 15
 	rtTmp.left = 41;
 	rtTmp.top += 32;
-
-	//printf("$$$$$$$$$$$$ i = %d\n",i);
 	pBmpButtonNormal[i] = VD_LoadBitmap(pbBmpName[i][0]);
 	pBmpButtonSelect[i] = VD_LoadBitmap(pbBmpName[i][1]);
 	pButton[i] = CreateButton(CRect(rtTmp.left, rtTmp.top, 
@@ -329,7 +364,11 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 	{
 		pButton[i]->SetBitmap(pBmpButtonNormal[i], pBmpButtonSelect[i], pBmpButtonSelect[i]);
 	}
-
+	pButton[i]->Show(FALSE);
+#else
+	pButton[15] = NULL;
+#endif
+#if 0
 	//printf("%s 1\n", __func__);
 	rtTmp.left += 10+24;
 	i++;
@@ -338,11 +377,59 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 					rtTmp.right, rtTmp.top+17), this, 0, 100, (CTRLPROC)&CPagePlayBackFrameWork::OnSlider, sliderNoNum);
 	//m_pSlider = new CSliderCtrlPartColor(CRect(rtTmp.left, rtTmp.top+5, 
 	//				rtTmp.right, rtTmp.top+17), this, 0, 24*60*60, 24, (CTRLPROC)&CPagePlayBackFrameWork::OnSlider);
-	
-	
-	rtTmp.left = rtTmp.right + 7;
+#else
+	//进度条
+	rtTmp.left = 10;
+	rtTmp.right = pRect->right - 10;
+	//rtTmp.top = right_page_b + 10;
+	rtTmp.top += 32;
+	rtTmp.bottom = rtTmp.top + TEXT_HEIGHT;
 
-	//printf("$$$$$$$$$$$$ i = %d\n",i);
+	double interval = rtTmp.Width()/(double)24;
+	char str_num[10];
+	
+	for (i=0; i<25; ++i)//24 hour
+	{
+		sprintf(str_num, "%02d", i);
+		
+		if (i==0) //一位数
+		{
+			pTextSlider[i] = CreateStatic(CRect(rtTmp.left-7, rtTmp.top, rtTmp.left-7+TEXT_HEIGHT, rtTmp.top+TEXT_HEIGHT), this, str_num);
+		}
+		else if (i<24)//两位数
+		{
+			pTextSlider[i] = CreateStatic(CRect(rtTmp.left+i*interval-TEXT_HEIGHT/2, rtTmp.top, rtTmp.left+i*interval+TEXT_HEIGHT/2, rtTmp.top+TEXT_HEIGHT), this, str_num);
+		}
+		else //最后一个偏左一点
+		{
+			pTextSlider[i] = CreateStatic(CRect(rtTmp.left+i*interval-TEXT_HEIGHT/2-4, rtTmp.top, rtTmp.left+i*interval+TEXT_HEIGHT/2-4, rtTmp.top+TEXT_HEIGHT), this, str_num);
+		}
+		
+		pTextSlider[i]->SetTextColor(VD_GetSysColor(COLOR_CTRLTEXT));
+		pTextSlider[i]->SetTextAlign(VD_TA_XCENTER);
+	}
+
+	rtTmp.left = 10;
+	rtTmp.right = pRect->right - 10;
+	rtTmp.top = rtTmp.bottom;
+	
+	//rt.bottom = rt.top + TEXT_HEIGHT;
+	for (i=0; i<4; ++i)
+	{
+		m_pSlider[i] = new CSliderCtrlPartColor(CRect(rtTmp.left, rtTmp.top+i*12, rtTmp.right, rtTmp.top+(i+1)*12), 
+			this, 0, 24*60*60-1, 24, (CTRLPROC)&CPagePlayBackFrameWork::OnSlider);
+		
+		//m_pSlider[i]->SetTrackerEnable(FALSE);
+	}
+
+	m_SliderRangeMode = EM_SLIDER_MODE_24HR;
+
+	
+#endif	
+	pButton[16] = NULL;
+#if 0
+	//后一段视频按键i = 16
+	rtTmp.left = rtTmp.right + 7;
 	pBmpButtonNormal[i] = VD_LoadBitmap(pbBmpName[i][0]);
 	pBmpButtonSelect[i] = VD_LoadBitmap(pbBmpName[i][1]);
 	pButton[i] = CreateButton(CRect(rtTmp.left, rtTmp.top, 
@@ -359,23 +446,44 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 	{
 		pButton[i]->SetBitmap(pBmpButtonNormal[i], pBmpButtonSelect[i], pBmpButtonSelect[i]);
 	}
-	
-	rtTmp.left = 41;
-	rtTmp.top += 32;
+	pButton[i]->Show(FALSE);
+#else
 
+#endif	
+	
+	//Slider Range Btn
+	char *pslider_btn_text[] = {"24H", "2H", "1H", "30M"};
+	
+	rtTmp.top = 7;
+	rtTmp.left = slider_range_btn_left;
+	for (i=0; i<4; ++i)
+	{
+		pButton[PB_BUTTON_24HR+i] = CreateButton(CRect(rtTmp.left+i*TEXT_WIDTH*3/2, rtTmp.top, 
+			rtTmp.left+(i+1)*TEXT_WIDTH*3/2, rtTmp.top+CTRL_HEIGHT),
+			this, pslider_btn_text[i], (CTRLPROC)&CPagePlayBackFrameWork::OnClkBtnSlider, NULL, buttonNormalBmp);	
+		pButton[PB_BUTTON_24HR+i]->SetBitmap(VD_LoadBitmap(DATA_DIR"/temp/btn.bmp"), VD_LoadBitmap(DATA_DIR"/temp/btn_f.bmp"), VD_LoadBitmap(DATA_DIR"/temp/btn_f.bmp"), VD_LoadBitmap(DATA_DIR"/temp/btn_f.bmp"));
+	}
+#if 0	
+	rtTmp.left = 41;
+	rtTmp.top += 32+32;
+
+	//本地时间
 	i = 0;
 	m_pStatic[i] = CreateStatic(CRect(rtTmp.left, rtTmp.top , 
 								rtTmp.left+170, rtTmp.top+22), this, "04/28/2011 15:00:00");
 	m_pStatic[i]->SetTextAlign(VD_TA_LEFT);
-	m_pStatic[i]->Show(0);
+	m_pStatic[i]->Show(FALSE);
 	i++;
 
+	
+	//播放速率
 	//rtTmp.left += ((pRect->right - pRect->left) >> 1);
 	rtTmp.left = ((pRect->right - pRect->left) >> 1)-15;
 
 	m_pStatic[i] = CreateStatic(CRect(rtTmp.left, rtTmp.top , 
 								rtTmp.left+100, rtTmp.top+22), this, ">>1X");
 	m_pStatic[i]->SetTextAlign(VD_TA_LEFT);
+	
 	i++;
 
 	rtTmp.left += 100;
@@ -404,17 +512,18 @@ CPagePlayBackFrameWork::CPagePlayBackFrameWork( VD_PCRECT pRect,VD_PCSTR psz /*=
 								rtTmp.right, rtTmp.top+22), this, ""/*"15:29:59"*/);
 	m_pStatic[i]->SetTextAlign(VD_TA_RIGHT);
 	//m_pStatic[i]->SetBkColor(VD_RGB(67,77,87));
+	#endif
 
 	CRect rtFloat;
 	rtFloat.left = FastforwarLeft + m_pbRect.left;
 	rtFloat.right = rtFloat.left + 75;
-	rtFloat.top = m_Rect.bottom - 100 - 173;
+	rtFloat.top = m_Rect.bottom - BOTTOM_PAGE_HEIGHT/*100*/ - 173;
 	rtFloat.bottom = rtFloat.top + 173;
 	m_pPagePlayrate0 = new CPagePlayrateSelect(rtFloat,NULL,NULL,this,0,1);
 	
 	rtFloat.left = BackwarLeft + m_pbRect.left;
 	rtFloat.right = rtFloat.left + 75;
-	rtFloat.top = m_Rect.bottom - 100 - 173;
+	rtFloat.top = m_Rect.bottom - BOTTOM_PAGE_HEIGHT/*100*/ - 173;
 	rtFloat.bottom = rtFloat.top + 173;
 	m_pPagePlayrate1 = new CPagePlayrateSelect(rtFloat,NULL,NULL,this,0,0);
 	
@@ -474,8 +583,167 @@ VD_PCSTR CPagePlayBackFrameWork::GetDefualtTitleCenter()
 	return "Playback";
 }
 
+void CPagePlayBackFrameWork::InitSlider()
+{
+	int chn, i, j;
+	std::vector<Range> v_ranges[4];	//每通道的录像区间
+	u32 file_start = 0;
+	u32 file_end = 0;
+
+	//fill v_ranges
+	Range r(0, 24*60*60-1);
+	Range range_date(m_CurPlayDate, m_CurPlayDate+24*60*60-1);
+	
+	for (i=0; i<4; ++i)
+	{
+		//m_pSlider[i]->SetDisplayRange(r, 24);
+		//m_pSlider[i]->SetPos(0);
+
+		pButton[PB_BUTTON_24HR+i]->Enable(TRUE);
+	}
+	pButton[PB_BUTTON_24HR]->Enable(FALSE);
+	
+	#if 0
+	int cnt = 0;
+	char str_start[32] = {0};
+	char str_end[32] = {0};
+	GetTimeForBackup2(range_date.start, str_start);
+	GetTimeForBackup2(range_date.end, str_end);
+	printf("range date[%u, %u][%s, %s]\n", range_date.start, range_date.end, str_start, str_end);
+	#endif
+	
+	SBizRecfileInfo *psRecfileInfo = NULL;
+	s32 nRealFileNums = 0;
+
+	for (j=0; j<nPlayChnNum; ++j)
+	{
+		r.start = r.end = 0;
+		psRecfileInfo = NULL;
+		nRealFileNums = 0;
+		
+		if (0 == BizPlaybackGetChnFileInfo(j, &psRecfileInfo, &nRealFileNums))
+		{
+			printf("playno: %d, nRealFileNums: %d\n", j, nRealFileNums);
+			if (nRealFileNums && psRecfileInfo)
+			{
+				for (i = nRealFileNums-1; i>-1; --i)
+				{
+					file_start = psRecfileInfo[i].nStartTime;
+					file_end = psRecfileInfo[i].nEndTime;
+
+					if (file_end < file_start)
+					{
+						printf("Error: %s: file_end(%u) < file_start(%u)\n", __func__, file_end, file_start);
+						continue;
+					}
+
+					if (r.end > file_start)
+					{
+						printf("Error: %s: range end(%u) > file_start(%u)\n", __func__, r.end, file_start);
+						continue;
+					}
+						
+					if (!r.start) //先确定start
+					{
+						r.start = file_start;
+						r.end = file_end;
+
+						//printf("start: %u\n", file_start);
+						continue;
+					}
+
+					//然后组合时间连续的文件
+					//间隔< 5秒，认为连续
+					if (file_start - r.end < 5)
+					{
+						r.end = file_end;
+					}
+					else //不连续
+					{
+						//printf("end: %u\n", r.end);
+						if (r.end < range_date.start || r.start > range_date.end)
+						{
+							printf("error: %s 1:r[%d, %d] not in range date[%d, %d]\n",
+								__func__, r.start, r.end, range_date.start, range_date.end);
+						}
+						else
+						{
+							v_ranges[j].push_back(r);
+
+							r.start = r.end = 0;
+
+							++i;//为了在下一个循环重新处理这个文件
+						}
+					}
+				}
+				//保存最后一个区间
+				if (r.selfCheck())
+				{
+					if (r.end < range_date.start || r.start > range_date.end)
+					{
+						printf("error: %s 2:r[%d, %d] not in range date[%d, %d]\n",
+							__func__, r.start, r.end, range_date.start, range_date.end);
+					}
+					else
+					{
+						v_ranges[j].push_back(r);
+					}
+				}
+			}
+		}	
+	}
+	
+	//对录像最早和最晚的时间进行修正
+	//因为最早的文件可能跨越了零点，就是开始时间在前一天	
+	std::vector<Range>::iterator iter;
+	for (j=0; j<nPlayChnNum; ++j)
+	{
+	#if 0
+		cnt = 0;
+	#endif
+		if (!v_ranges[j].empty())
+		{
+			iter = v_ranges[j].begin();
+			if (iter->start < range_date.start)
+			{
+				//printf("adjust start window:%d\n", j);
+				iter->start = range_date.start;
+			}
+
+			iter = v_ranges[j].end()-1;
+			if (iter->end > range_date.end)
+			{
+				//printf("adjust end window:%d\n", j);
+				iter->end = range_date.end;
+			}
+
+			for (iter = v_ranges[j].begin(); iter != v_ranges[j].end(); ++iter)
+			{
+			#if 0
+				GetTimeForBackup2(iter->start, str_start);
+				GetTimeForBackup2(iter->end, str_end);
+				printf("window: %d, chn: %d, cnt: %d range[%u, %u][%s, %s]\n",
+					j, m_WindowChn[j], cnt, iter->start, iter->end, str_start, str_end);
+				cnt++;
+			#endif
+				//记录相对于零点的偏移
+				iter->start -= range_date.start;
+				iter->end -= range_date.start;
+			}
+		
+		}
+
+		//空也设置，即不进行着色
+		m_pSlider[j]->SetColorRange(v_ranges[j]);
+	}
+	
+	adjustSlider(0, EM_SLIDER_MODE_24HR);
+	
+}
+
 void CPagePlayBackFrameWork::OnSlider()
 {
+#if 0
 	int pos = m_pSlider->GetPos();
 	int curTime = m_total*pos/100 + m_startTime;
 	//printf("m_total = %d, m_startTime = %d, curTime = %d\n",m_total, m_startTime, curTime);
@@ -486,6 +754,41 @@ void CPagePlayBackFrameWork::OnSlider()
 	{
 		BizPlaybackControl(EM_BIZCTL_PAUSE, 0);
 	}
+#else
+	int i = 0; 
+	int cur_pos = ~0;
+
+	CSliderCtrlPartColor *pslider = (CSliderCtrlPartColor *)GetFocusItem();
+
+	//CGuard guard(m_Mutex);//死锁
+	
+	for (i=0; i<4; ++i)
+	{
+		if (pslider == m_pSlider[i])
+		{
+			cur_pos = pslider->GetPos();
+			printf("slider%d pos: %d\n", i, cur_pos);
+
+			BizPlaybackControl(EM_BIZCTL_SEEK, cur_pos + m_CurPlayDate);
+	
+			if(isPause)
+			{
+				BizPlaybackControl(EM_BIZCTL_PAUSE, 0);
+			}
+
+			break;
+		}
+	}
+
+	//同步移动
+	for (i=0; i<4; ++i)
+	{
+		if (pslider != m_pSlider[i] && cur_pos != ~0)
+		{
+			m_pSlider[i]->SetPos(cur_pos);
+		}
+	}
+#endif
 }
 
 void CPagePlayBackFrameWork::SetPbTotalTime(int totalTime)
@@ -507,13 +810,248 @@ void CPagePlayBackFrameWork::SetPbInfo(SBizSearchPara sp)
 
 void CPagePlayBackFrameWork::SetPbProg(int nProg)
 {
+#if 0
 	m_pSlider->SetPos(nProg);
+#else
+	int i;
+
+	for (i=0; i<4; ++i)
+	{
+		m_pSlider[i]->SetPos(nProg);	
+	}
+#endif
 }
 
 void CPagePlayBackFrameWork::SetPbCurTime(char* curTime)
 {
-	m_pStatic[0]->SetText(curTime);
+	//m_pStatic[0]->SetText(curTime);
 	m_AllowOperateMenue = 1;
+}
+
+void CPagePlayBackFrameWork::SetPbCurTime(u32 curTime)
+{
+	m_AllowOperateMenue = 1;
+	
+	//CGuard guard(m_Mutex);
+	char str_time[32];	
+	Range r;
+	Range range_date(m_CurPlayDate, m_CurPlayDate+24*60*60-1);
+	
+	if (!isInRange(curTime, range_date))
+	{
+		printf("warning: %s curTime: %d not in range date[%d, %d]\n",
+			__func__, curTime, range_date.start, range_date.end);
+
+		return;
+	}
+
+	GetTimeForBackup2(curTime, str_time);
+	m_pStatic[3]->SetText(str_time);
+
+	//根据模式调整下一区域
+	adjustSlider(curTime - m_CurPlayDate, m_SliderRangeMode);
+	
+}
+
+//依赖EM_SLIDER_MODE_XX 得到进度条的宽度
+s32 CPagePlayBackFrameWork::getSliderWidth(int mode)
+{
+	int width = 0;
+	
+	switch (mode)
+	{
+		case EM_SLIDER_MODE_24HR:
+		{
+			width = 24*60*60;
+		} break;
+		
+		case EM_SLIDER_MODE_2HR:
+		{
+			width = 2*60*60;
+		} break;
+		
+		case EM_SLIDER_MODE_1HR:
+		{
+			width = 1*60*60;
+		} break;
+		
+		case EM_SLIDER_MODE_30MIN:
+		{
+			width = 30*60;
+		} break;
+		
+		default:
+			printf("warning: %s mode: %d not support\n", __func__, mode);
+	}
+
+	return width;
+}
+
+//依赖EM_SLIDER_MODE_XX 得到进度条刻度一格的跨度
+s32 CPagePlayBackFrameWork::getSliderSpan(int mode)
+{
+	int span = 0;
+	
+	switch (mode)
+	{
+		case EM_SLIDER_MODE_24HR:
+		{
+			span = 24*60*60/split_line_num[mode];
+		} break;
+		
+		case EM_SLIDER_MODE_2HR:
+		{
+			span = 2*60*60/split_line_num[mode];
+		} break;
+		
+		case EM_SLIDER_MODE_1HR:
+		{
+			span = 60*60/split_line_num[mode];
+		} break;
+		
+		case EM_SLIDER_MODE_30MIN:
+		{
+			span = 30*60/split_line_num[mode];
+		} break;
+		
+		default:
+			printf("warning: %s mode: %d not support\n", __func__, mode);
+	}
+
+	return span;
+}
+//函数外必须保证cur_pos 在[0, 24*60*60] 中
+void CPagePlayBackFrameWork::adjustSlider(u32 cur_pos, int SliderRangeMode)
+{
+	//return;
+	
+	int i;
+	int b_adjust = 0;
+	Range r;
+	s32 width;
+	m_pSlider[0]->GetDisplayRange(r);
+
+	//调整DisplayRange 的条件
+	if (!isInRange(cur_pos, r))
+	{
+		printf("%s cur_posr: %d not in range[%d, %d]\n", 
+			__func__, cur_pos, r.start, r.end);
+		
+		b_adjust = 1;
+	}
+
+	if (m_SliderRangeMode != SliderRangeMode)
+	{
+		printf("%s m_SliderRangeMode: %d, new SliderRangeMode: %d\n", 
+			__func__, m_SliderRangeMode, SliderRangeMode);
+		
+		m_SliderRangeMode = SliderRangeMode;
+		b_adjust = 1;
+	}
+
+	if (b_adjust)
+	{
+		width = getSliderWidth(m_SliderRangeMode);
+		if (0 == width)
+		{
+			return ;
+		}
+
+		r.start = cur_pos/width*width;
+		r.end = (cur_pos/width+1)*width-1;
+		printf("%s: adjust display range[%d, %d]\n", __func__, r.start, r.end);
+
+		adjustSliderText(r, split_line_num[m_SliderRangeMode]);
+		
+		for (i=0; i<4; ++i)
+		{
+			m_pSlider[i]->SetDisplayRange(r, split_line_num[m_SliderRangeMode]);			
+		}
+	}
+
+	for (i=0; i<4; ++i)
+	{
+		m_pSlider[i]->SetPos(cur_pos);			
+	}
+}
+
+void CPagePlayBackFrameWork::adjustSliderText(const Range &r, const int split_line_num)
+{
+	if (split_line_num == 0)
+	{
+		printf("%s split_line_num == 0\n", __func__, split_line_num);
+		return ;
+	}
+
+	int i;
+	u32 start_time = r.start + m_CurPlayDate;
+	u32 time_interval = (r.end+1-r.start)/split_line_num;
+	int text_width;
+	CRect rtTmp;
+
+	rtTmp.left = m_Rect.left + 10;
+	rtTmp.right = m_Rect.right - 10;
+	rtTmp.top = m_Rect.top + 7+32;
+	rtTmp.bottom = rtTmp.top + TEXT_HEIGHT;
+
+	double interval = rtTmp.Width()/(double)split_line_num;
+	char str_num[10];
+
+	for (i=0; i<25; ++i)//24 hour
+	{
+		pTextSlider[i]->Show(FALSE);
+	}
+#if 0 //test
+	sprintf(str_num, "%02d", i);
+	VD_RECT rect;
+	pTextSlider[0]->GetRect(&rect);
+	printf("l: %d, r: %d, t: %d, b: %d\n", rect.left, rect.right, rect.top, rect.bottom);
+	rect.left += 100;
+	rect.right += 100;
+	pTextSlider[0]->SetRect(&rect);
+	pTextSlider[0]->SetText(str_num);
+	pTextSlider[0]->Show(TRUE);
+
+	//GetTimeForBackup3(m_CurPlayDate + r.start + time_interval*1, str_num);
+	//printf("str_num: %s\n", str_num);
+
+	//pTextSlider[1]->SetRect(CRect(10, 10, 10+text_width, 10+TEXT_HEIGHT));
+	//pTextSlider[1]->SetText(str_num);
+	//pTextSlider[1]->Show(TRUE);
+	
+#else
+	for (i=0; i<split_line_num+1; ++i)
+	{
+		if (EM_SLIDER_MODE_24HR == m_SliderRangeMode) //只显示小时 00 01 02..... 24
+		{
+			text_width = TEXT_WIDTH;
+			sprintf(str_num, "%02d", i);
+		}
+		else	//显示小时: 分钟eg:  xx:xx  
+		{
+			text_width = 2*TEXT_WIDTH + TEXT_WIDTH/2;// 2.5*TEXT_WIDTH
+			GetTimeForBackup3(m_CurPlayDate + r.start + time_interval*i, str_num);
+		}
+
+		if (0 == i) //第一个偏右一点
+		{
+			pTextSlider[i]->SetRect(CRect(rtTmp.left-7, rtTmp.top, rtTmp.left-7+text_width, rtTmp.top+TEXT_HEIGHT));
+		}
+		else if(split_line_num == i)//最后一个偏左一点
+		{
+			pTextSlider[i]->SetRect(CRect(rtTmp.right+7-text_width, rtTmp.top, rtTmp.right+7, rtTmp.top+TEXT_HEIGHT));
+		}
+		else //中间的两位数
+		{
+			pTextSlider[i]->SetRect(CRect(rtTmp.left+i*interval-text_width/2, rtTmp.top, rtTmp.left+i*interval+text_width/2, rtTmp.top+TEXT_HEIGHT));
+		}
+		
+		pTextSlider[i]->SetText(str_num);
+		pTextSlider[i]->Show(TRUE);
+	}
+	
+#endif
+
 }
 
 void CPagePlayBackFrameWork::SetPbTotalTime(char* totalTime)
@@ -655,6 +1193,43 @@ void CPagePlayBackFrameWork::SetPlayrate(int rate, int type)
     isStop = 0;
     isPause = 0;
     pButton[0]->SetBitmap(pBmpButtonNormal[0], pBmpButtonSelect[0], pBmpButtonSelect[0], pBmpButtonDisable[0]);
+}
+
+void CPagePlayBackFrameWork::OnClkBtnSlider()
+{
+	CButton *pFocusButton = (CButton *)GetFocusItem();
+	int SliderRangeMode = EM_SLIDER_MODE_24HR;
+	int i;
+	
+	for (i=0; i<4; ++i)
+	{
+		pButton[PB_BUTTON_24HR+i]->Enable(TRUE);
+	}
+	pFocusButton->Enable(FALSE);
+	
+	if (pFocusButton == pButton[PB_BUTTON_24HR])
+	{
+		printf("%s PB_BUTTON_24HR\n", __func__);
+		SliderRangeMode = EM_SLIDER_MODE_24HR;
+	}
+	else if (pFocusButton == pButton[PB_BUTTON_2HR])
+	{
+		printf("%s PB_BUTTON_2HR\n", __func__);
+		SliderRangeMode = EM_SLIDER_MODE_2HR;
+	}
+	else if (pFocusButton == pButton[PB_BUTTON_1HR])
+	{
+		printf("%s PB_BUTTON_1HR\n", __func__);
+		SliderRangeMode = EM_SLIDER_MODE_1HR;
+	}
+	else if (pFocusButton == pButton[PB_BUTTON_30M])
+	{
+		printf("%s PB_BUTTON_30M\n", __func__);
+		SliderRangeMode = EM_SLIDER_MODE_30MIN;
+	}
+
+	adjustSlider(m_pSlider[0]->GetPos(), SliderRangeMode);
+	
 }
 
 void CPagePlayBackFrameWork::OnClkPbCtl()
@@ -1163,7 +1738,7 @@ VD_BOOL CPagePlayBackFrameWork::UpdateData( UDM mode )
 {
 	if(UDM_CLOSED == mode)
 	{
-		//printf("Pageplayback closed cw^^^^^^^%s,%d\n",__func__,__LINE__);//cw_test
+		printf("Pageplayback closed cw^^^^^^^%s,%d\n",__func__,__LINE__);//cw_test
 		
 		SetPlayBakStatus(0);
 		
@@ -1203,9 +1778,10 @@ VD_BOOL CPagePlayBackFrameWork::UpdateData( UDM mode )
 		((CPagePlayrateSelect*)m_pPagePlayrate0)->Close();
 		
 		((CPagePlayrateSelect*)m_pPagePlayrate1)->Close();
-		
+
+		//printf("Pageplayback closed 1\n",__func__);
 		BizResumePreview(1);//yaogang modify 20140918
-		
+		//printf("Pageplayback closed 2\n",__func__);
 		((CPageDesktop*)m_pDesktop)->SetModePreviewing();//yzw
 		
 		if(GetTimeDisplayCheck())
@@ -1216,7 +1792,7 @@ VD_BOOL CPagePlayBackFrameWork::UpdateData( UDM mode )
 		if(m_pPageSearch)
 		{
 			m_pPageSearch->GetParentPage()->Show(TRUE);//cw_test
-			printf("playback over PageSearch Open cw^^^^^^^%s,%d\n",__func__,__LINE__);//cw_tes
+			//printf("playback over PageSearch Open cw^^^^^^^%s,%d\n",__func__,__LINE__);//cw_tes
 			m_pPageSearch->Open();//cw_test UpdateData(UDM_OPENED)
 			m_pPageSearch = NULL;
 		}
@@ -1458,6 +2034,9 @@ VD_BOOL CPagePlayBackFrameWork::UpdateData( UDM mode )
 		BizPlaybackControl(EM_BIZCTL_MUTE,(u32)m_nMute);
 		//printf("4 playback control cw^^^^^^^%s,%d\n",__func__,__LINE__);//cw_test
 		SetPbTotalTime("00:00:00/00:00:00");
+
+		//yaogang
+		InitSlider();
 	}
 	
 	return TRUE;
@@ -2027,10 +2606,31 @@ u8 CPagePlayBackFrameWork::GetMouseInWhichChn(int x, int y, int chnNum)
 
 void CPagePlayBackFrameWork::SetPlayChnNum( int nChnNum )
 {
+	int i;
 	nPlayChnNum = nChnNum;
+
+	if (1 == nPlayChnNum)
+	{
+		for (i=1; i<4; ++i)
+		{
+			m_pSlider[i]->Show(FALSE);
+		}
+	}
+	else if (4 == nPlayChnNum)
+	{
+		for (i=1; i<4; ++i)
+		{
+			m_pSlider[i]->Show(TRUE);
+		}
+	}
 }
 
-void CPagePlayBackFrameWork::SetSearchPage(CPageSearch* pPage)
+void CPagePlayBackFrameWork::SetPlayDate(u32 startTime)
+{
+	m_CurPlayDate = startTime;
+}
+
+void CPagePlayBackFrameWork::SetSearchPage(CPage* pPage)
 {
 	m_pPageSearch = pPage;
 }

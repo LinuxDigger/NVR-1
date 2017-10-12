@@ -87,6 +87,23 @@ s32 PlayBackByTime(SBizSearchPara* pSearchParam)
     return ModPlayBackByTime(psBizManager->hPb, (SPBSearchPara*)pSearchParam);
 }
 
+//yaogang modify 20170927 进度条着色修改按时间回放
+//设置回放信息
+s32 PlaybackSetInfo(const SBizPlaybackInfo *pinfo)
+{
+	SBizManager* psBizManager = &g_sBizManager;
+    
+    return ModPlayBackSetInfo(psBizManager->hPb, (const SPBInfo*)pinfo);
+}
+//playChn 回放窗口通道
+s32 PlaybackGetChnFileInfo(u8 playChn, SBizRecfileInfo **ppfile, s32 *pRealFileNums)
+{
+	SBizManager* psBizManager = &g_sBizManager;
+    
+    return ModPlayBackGetChnFileInfo(psBizManager->hPb, playChn, (SPBRecfileInfo **)ppfile, pRealFileNums);
+}
+
+
 //按文件回放
 s32 PlayBackByFile(SBizRecfileInfo* pFileInfo)
 {

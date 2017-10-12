@@ -386,12 +386,21 @@ CPageStartFrameWork::CPageStartFrameWork( VD_PCRECT pRect,VD_PCSTR psz,VD_BITMAP
 		int nOffsetXCvbs = 48;
 		pagePbWidth = screenWidth - 2 * nOffsetXCvbs;
 	}
-	
+
+#if 0
 	pbFloat.left = (screenWidth-pagePbWidth)/2;
 	//printf("rtFloat.left  = %d \n",rtFloat.left);
 	pbFloat.right = pbFloat.left + pagePbWidth;
 	pbFloat.top = m_Rect.bottom - 100;
 	pbFloat.bottom = pbFloat.top + 100;
+#else
+	//添加 4个着色进度条
+	//height (10/*上边沿*/+ 32/*按键+间隔*/ +24/*刻度值*/+12*4/*进度条*/+24/*下边沿*/)
+	pbFloat.left = m_RectScreen.left;
+	pbFloat.right = m_RectScreen.right;
+	pbFloat.top = m_RectScreen.bottom - 138;
+	pbFloat.bottom = m_RectScreen.bottom;
+#endif	
 	m_pPagePlayBack = new CPagePlayBackFrameWork(pbFloat, NULL,NULL,NULL/*this*/);
 	m_pPagePlayBack->SetDesktop(m_pDesktop);
 	SetPage(EM_PAGE_PLAYBACK,m_pPagePlayBack);
@@ -1092,6 +1101,9 @@ void CPageStartFrameWork::OnClkStartBtn()
 					
 					SBizSearchPara sBizSearchParam;
 					memset(&sBizSearchParam,0,sizeof(sBizSearchParam));
+
+					SBizPlaybackInfo pb_info;
+					memset(&pb_info, 0, sizeof(SBizPlaybackInfo));
 					
 					time_t tTmp;
 					struct tm tmstrTmp;
@@ -1124,9 +1136,21 @@ void CPageStartFrameWork::OnClkStartBtn()
 					//csp modify 20131213
 					sBizSearchParam.nStartTime -= GetTimeZoneOffset(nTimeZone);
 					sBizSearchParam.nEndTime -= GetTimeZoneOffset(nTimeZone);
+
+					pb_info.nStartTime = sBizSearchParam.nStartTime;
+					pb_info.nEndTime = sBizSearchParam.nEndTime;
+
 					
 					sBizSearchParam.nMaskChn = 0x0000000f;//1101
+
+					u8 windowChn[16];
+					windowChn[0] = 0;
+					windowChn[1] = 1;
+					windowChn[2] = 2;
+					windowChn[3] = 3;
 					
+					pb_info.nPlayNum = 4;
+					pb_info.nPlayChn = windowChn;
 					//csp modify
 					#if 0
 					if(GetMaxChnNum() == 8)
@@ -1145,8 +1169,11 @@ void CPageStartFrameWork::OnClkStartBtn()
 						sBizSearchParam.nMaskChn = 0x0f;
 						m_pPagePlayBack->SetPlayChnNum(4);
 					}
-					
+					m_pPagePlayBack->SetPlayDate(sBizSearchParam.nStartTime);
 					sBizSearchParam.nMaskType = 0xff;
+
+					pb_info.nMaskType = 0xf;
+					BizPlaybackSetInfo(&pb_info);
 					
 					//m_pPagePlayBack->SetPlayChnNum(4);//cw_test 4//csp modify
 					

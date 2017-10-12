@@ -38,7 +38,7 @@ typedef enum
 
 typedef struct
 {
-    u8 nChn;
+    u8 nChn; //结构体中的nChn>=1,而非>=0
     u8 nType;
     u32 nStartTime;
     u32 nEndTime;

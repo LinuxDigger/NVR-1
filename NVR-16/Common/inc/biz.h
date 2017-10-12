@@ -97,6 +97,11 @@ s32 BizPlayBackSetModeVOIP(u8 nVoip);
 void BizSetPlayType(int type);
 void SetCurPlayRate(int rate);
 int GetCurPlayRate();
+//yaogang modify 20170927 进度条着色修改按时间回放
+//设置回放信息
+s32 BizPlaybackSetInfo(const SBizPlaybackInfo *pinfo);
+//playChn 回放窗口通道
+s32 BizPlaybackGetChnFileInfo(u8 playChn, SBizRecfileInfo **ppfile, s32 *pRealFileNums);
 
 //yaogang modify 20150112
 s32 BizSnapDisplay(SBizRecSnapInfo *pSnapInfo);

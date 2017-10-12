@@ -17,6 +17,12 @@ s32 PlaybackInit(u8 nEnable, SBizPlayback* psInitPara);
 //yaogang modify 20150112
 s32 SnapDisplay(SBizRecSnapInfo *pSnapInfo);
 
+//yaogang modify 20170927 进度条着色修改按时间回放
+//设置回放信息
+s32 PlaybackSetInfo(const SBizPlaybackInfo *pinfo);
+//playChn 回放窗口通道
+s32 PlaybackGetChnFileInfo(u8 playChn, SBizRecfileInfo **ppfile, s32 *pRealFileNums);
+
 //开始回放
 s32 PlaybackStart(SBizPbStart *psPbStart);
 //回放控制 

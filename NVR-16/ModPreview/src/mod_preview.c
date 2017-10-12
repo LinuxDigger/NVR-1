@@ -193,13 +193,17 @@ s32 ModPreviewStart(SPreviewPara* psPreviewPara)
 	EMPREVIEWMODE emMode;
 	u32 nFirstChn;
 	
-	//printf("ModPreviewStart-1 mode=%d......\n",psPreviewPara->emPreviewMode);
+	//printf("ModPreviewStart -1\n");
     
 	if(NULL == psPreviewPara)
 	{
 		return -1;
 	}
+
+	pthread_mutex_lock(&g_sPreviewManager.lock);
 	
+	//printf("ModPreviewStart -2 mode=%d, nIsModeChange: %d\n",
+	//	psPreviewPara->emPreviewMode, g_sPreviewManager.nIsModeChange);
 #if 0
 	while(g_sPreviewManager.nIsModeChange != 0)//cw_preview
 	{
@@ -209,6 +213,7 @@ s32 ModPreviewStart(SPreviewPara* psPreviewPara)
 #else
     if(g_sPreviewManager.nIsModeChange != 0)
 	{
+		pthread_mutex_unlock(&g_sPreviewManager.lock);
 		return -1;
     }
 #endif
@@ -218,7 +223,7 @@ s32 ModPreviewStart(SPreviewPara* psPreviewPara)
 	
 	//printf("g_sPreviewManager.sCurPreview.emPreviewMode = %d,g_sPreviewManager.sLastPreview.emPreviewMode = %d\n",g_sPreviewManager.sCurPreview.emPreviewMode,g_sPreviewManager.sLastPreview.emPreviewMode);
 	
-	pthread_mutex_lock(&g_sPreviewManager.lock);
+	//pthread_mutex_lock(&g_sPreviewManager.lock);
 	
 	if(g_sPreviewManager.nIsPreview &&
 			(psPreviewPara->emPreviewMode==g_sPreviewManager.sCurPreview.emPreviewMode &&
@@ -229,7 +234,7 @@ s32 ModPreviewStart(SPreviewPara* psPreviewPara)
 		return 0;//-1;
 	}
 	
-	//printf("ModPreviewStart-2 mode=%d......\n",psPreviewPara->emPreviewMode);
+	//printf("ModPreviewStart-3 mode=%d......\n",psPreviewPara->emPreviewMode);
 	
     g_sPreviewManager.nIsPreview = 1;
 	
@@ -244,7 +249,7 @@ s32 ModPreviewStart(SPreviewPara* psPreviewPara)
     nFirstChn = psPreviewPara->nModePara;
     memcpy(&g_sPreviewManager.sCurPreview, psPreviewPara, sizeof(SPreviewPara));
 
-//printf("yg emMode: %d, nFirstChn: %d\n", emMode, nFirstChn);
+	//printf("yg emMode: %d, nFirstChn: %d\n", emMode, nFirstChn);
     switch(emMode)
     {
     	case EM_PREVIEW_1SPLIT:
@@ -350,6 +355,8 @@ s32 ModPreviewStop(void)
     tl_audio_out_sel(TL_AUDIO_CH_PLAY_BACK);
 	
     g_sPreviewManager.nIsModeChange = 1;
+	printf("%s nIsModeChange: %d\n",
+		__func__, g_sPreviewManager.nIsModeChange);
     
     pthread_mutex_unlock(&g_sPreviewManager.lock);
     
@@ -1285,9 +1292,14 @@ void* ModeCtrlFxn(void* arg)
     while(1)
     {
     #if 1
+		pthread_mutex_lock(&g_sPreviewManager.lock);
+	
     	if (g_sPreviewManager.nIsModeChange)
         {
-        	pthread_mutex_lock(&g_sPreviewManager.lock);
+       		 //printf("%s nIsModeChange: %d\n",
+			//	__func__, g_sPreviewManager.nIsModeChange);
+			 
+        	//pthread_mutex_lock(&g_sPreviewManager.lock);
         	
             if (g_sPreviewManager.sInitPara.pfnPreviewCb)
             {
@@ -1307,13 +1319,20 @@ void* ModeCtrlFxn(void* arg)
                 sPreviewPara.nVolume = g_sPreviewManager.sPreviewAudio.nOutVolume;
                 pthread_mutex_unlock(&g_sPreviewManager.lock);
 
-                g_sPreviewManager.sInitPara.pfnPreviewCb(&sPreviewPara);
+				//printf("%s pfnPreviewCb 1\n", __func__);
+                g_sPreviewManager.sInitPara.pfnPreviewCb(&sPreviewPara);//PreviewEventDeal
+				//printf("%s pfnPreviewCb 2\n", __func__);
 				
 				pthread_mutex_lock(&g_sPreviewManager.lock);
             }
             g_sPreviewManager.nIsModeChange = 0;
-            pthread_mutex_unlock(&g_sPreviewManager.lock);
+
+			//printf("%s nIsModeChange: %d\n",
+			//	__func__, g_sPreviewManager.nIsModeChange);
         }
+		
+		pthread_mutex_unlock(&g_sPreviewManager.lock);
+		
        #endif
 		
         #if 1

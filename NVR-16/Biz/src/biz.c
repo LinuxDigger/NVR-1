@@ -1628,6 +1628,19 @@ s32 BizAlarmWorkingEnable(u8 nEnable)
 	return AlarmWorkingEnable(nEnable);
 }
 
+//设置回放信息
+s32 BizPlaybackSetInfo(const SBizPlaybackInfo *pinfo)
+{
+
+	return PlaybackSetInfo(pinfo);
+}
+
+s32 BizPlaybackGetChnFileInfo(u8 playChn, SBizRecfileInfo **ppfile, s32 *pRealFileNums)
+{
+
+	return PlaybackGetChnFileInfo(playChn, ppfile, pRealFileNums);
+}
+
 s32 BizStartPlayback(EMBIZPLAYTYPE emBizPlayType, void* para)
 {
 	s32 nRet = 0;

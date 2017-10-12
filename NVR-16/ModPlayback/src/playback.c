@@ -77,13 +77,13 @@ typedef struct
 {
 	s16 nForward;
 	s16 nMediaFrameReady;
-	s32 nChnNo;
-	s32 nPlayNo;
+	s32 nChnNo;		// 录像文件对应的通道号
+	s32 nPlayNo;	// 4画面回放时，对应的回放窗口号
 	s32 nRealFileNums;
 	u8  nFlagZoom;		//单通道放大标志,
-						//2:多通道回放模式,
-						//0:单通道模式且该通道没有被ZOOM, 
-						//1:单通道模式且该通道被ZOOM
+						// 2:多通道回放模式,
+						// 0:单通道模式且该通道没有被ZOOM, 
+						// 1:单通道模式且该通道被ZOOM
 	u8 nMute;
 	u32 nFrameStepTime; //每帧间的间隔
 	u8 nIsPlaying;		//该通道是否正在回放(有数据正在解码)
@@ -464,7 +464,7 @@ s32 SearchRecFiles(SPlayBackManager* pSPbMgr,SPBSearchPara* pSearchParam)
 	}
 #endif
 	
-	pSPbMgr->nRealPlayNum = nPlayIndex;
+	pSPbMgr->nRealPlayNum = nPlayIndex;//回放窗口数量
 	
 	if(nRealPlayIndex == 0)
 	{
@@ -1355,7 +1355,7 @@ s32 StopPlayback(SPlayBackManager* pSPbManager, s8 flush)
 	{
 		if(pSPbManager->aPlaybackChnInfos[i].nRealFileNums != 0)
 		{
-			//printf("chn %d EM_CHN_STOP\n",i);
+			//printf("%s sendmsg chn:%d EM_CHN_STOP\n", __func__, i);
 			SendChnMsg(&pSPbManager->aPlaybackChnInfos[i],&sChnMsg,&nAck);
 		}
 	}
@@ -1382,7 +1382,7 @@ s32 StopPlayback(SPlayBackManager* pSPbManager, s8 flush)
 		cbInfo.nTotalTime = pSPbManager->nTotalTime;
 		cbInfo.nProg = 100;
 		//printf("**************pbProgCB\n");
-		pbProgCB(&cbInfo);
+		pbProgCB(&cbInfo);//PlaybackDeal
 		//printf("**************pbProgCB OK\n");
 	}
 	
@@ -1454,6 +1454,7 @@ void* PBCtlFunc(void* arg)
 				{
 					if((emPbCtlCmd == EM_CTL_PBTIME) || (emPbCtlCmd == EM_CTL_PBFILE))
 					{
+						#if 0
 						if(emPbCtlCmd == EM_CTL_PBTIME)
 						{
 							SPBSearchPara sSearchParam = unPbCtlCxt.sSearchParam;
@@ -1469,7 +1470,7 @@ void* PBCtlFunc(void* arg)
 						{
 							//error
 						}
-						
+						#endif
 						//printf(">>>>>>>search ok, time:%d\n", time(0));
 						
 						u32 nSearchFileNum = pSPbManager->nAllSrchFileNum;
@@ -1610,6 +1611,7 @@ void* PBCtlFunc(void* arg)
 					}
 					else if(emPbCtlCmd == EM_CTL_STOP)
 					{
+						//printf("%s EM_CTL_STOP 1\n", __func__);
 						StopPlayback(pSPbManager, 0);
 						
 						pSPbManager->emCurCtlState = EM_CTL_STATE_IDLE;
@@ -1889,6 +1891,7 @@ void* PBCtlFunc(void* arg)
 				{
 					if(emPbCtlCmd == EM_CTL_STOP)
 					{
+						//printf("%s EM_CTL_STOP 2\n", __func__);
 						StopPlayback(pSPbManager, 0);
 						
 						pSPbManager->emCurCtlState = EM_CTL_STATE_IDLE;
@@ -2212,6 +2215,7 @@ PlayRunning:
 					if((s64)(nNewPts-pSPbManager->nRefPTS) > JUMP_TIME)
 					{
 						//Seek(pSPbManager,(u32)(nNewPts/1000));
+						printf("jump time\n");
 						pSPbManager->nRefPTS = nNewPts;
 					}
 				}
@@ -2286,7 +2290,7 @@ void* PBChnFunc(void* arg)
 		nBufSize = 512*1024;//256*1024;//csp modify 20140302
 	}
 #endif
-	//4SDI:1M buffer -> 512K buffer
+	// 4SDI:1M buffer -> 512K buffer
 	printf("PBChnFunc chn%d play bufsize:%d\n",nChn,nBufSize);
 	
 	//csp modify 20121016//这里需要验证//CHIP_HISI3531是否起作用?
@@ -2415,7 +2419,7 @@ void* PBChnFunc(void* arg)
 				else if(emPbChnCmd == EM_CHN_STOP)//else if(emPbChnCmd == EM_CTL_STOP)//csp modify 20130415
 				{
 					//printf("wait emPbChnCmd STOP\n");
-					
+					//printf("%s chn: %d EM_CHN_STOP 1\n", __func__, nChn);
 					if(psPlaybackChnInfo->pFile != NULL)
 					{
 						custommp4_close(psPlaybackChnInfo->pFile);
@@ -2458,9 +2462,11 @@ void* PBChnFunc(void* arg)
 				else if(emPbChnCmd == EM_CHN_SEEK)
 				{
 					//printf("line:%d, time:%llu\n", __LINE__, GetTimeStamp());
+					printf("wait seek 1\n");
 					u32 nSeekTime = unPbChnCxt.nSeekTime;
 					Seek(psPlaybackChnInfo, nSeekTime);
 					//printf("line:%d, time:%llu\n", __LINE__, GetTimeStamp());
+					printf("wait seek 2\n");
 					AckChnMsg(psPlaybackChnInfo);
 					continue;
 				}
@@ -2474,7 +2480,7 @@ void* PBChnFunc(void* arg)
 			break;
 			case EM_CHN_STATE_PLAY:
 			{
-				printf("%d EM_CHN_STATE_PLAY\n", nChn);
+				//printf("%d EM_CHN_STATE_PLAY\n", nChn);
 				if(GetChnMsg(psPlaybackChnInfo, &sChnMsg, 0) == 0)
 				{
 					emPbChnCmd = sChnMsg.emCmd;
@@ -2482,6 +2488,8 @@ void* PBChnFunc(void* arg)
 					
 					if(emPbChnCmd == EM_CHN_STOP)
 					{
+						//printf("%s chn: %d EM_CHN_STOP 2\n", __func__, nChn);
+						
 						if(psPlaybackChnInfo->pFile != NULL)
 						{
 							custommp4_close(psPlaybackChnInfo->pFile);
@@ -2522,7 +2530,7 @@ void* PBChnFunc(void* arg)
 					}
 					else if(emPbChnCmd == EM_CHN_BACKWARD)
 					{
-						printf("%s emPbChnCmd == EM_CHN_BACKWARD\n", __func__);
+						//printf("%s emPbChnCmd == EM_CHN_BACKWARD\n", __func__);
 						psPlaybackChnInfo->nForward = -1;
 						
 						AckChnMsg(psPlaybackChnInfo);
@@ -2540,9 +2548,11 @@ void* PBChnFunc(void* arg)
 					else if(emPbChnCmd == EM_CHN_SEEK)
 					{
 						//printf("line:%d, time:%llu\n", __LINE__, GetTimeStamp());
+						printf("play seek 1\n");
 						u32 nSeekTime = unPbChnCxt.nSeekTime;
 						Seek(psPlaybackChnInfo, nSeekTime);
 						//printf("line:%d, time:%llu\n", __LINE__, GetTimeStamp());
+						printf("play seek 2\n");
 						AckChnMsg(psPlaybackChnInfo);
 						continue;
 					}
@@ -2566,7 +2576,7 @@ void* PBChnFunc(void* arg)
 		
 		if(emCurChnState == EM_CHN_STATE_PLAY)
 		{
-			if(psPlaybackChnInfo->nMediaFrameReady)
+			if(psPlaybackChnInfo->nMediaFrameReady)//还没有读录像文件
 			{
 				//csp modify
 				//u32 nCurIndex = psPlaybackChnInfo->nCurIndex;
@@ -2658,6 +2668,7 @@ CHECK_FOLLOW_FRAMES:
 				sem_getvalue(&psPlaybackChnInfo->semSendChnFinish, &value);
 				if(value > 0 && psPlaybackChnInfo->emPbChnCmd == EM_CHN_STOP)
 				{
+					//printf("%s chn: %d EM_CHN_STOP 3\n", __func__, nChn);
 					continue;
 				}
 				
@@ -3281,6 +3292,228 @@ s32 ModPlayBackDeinit(PbMgrHandle hPbMgr)
 	return 0;
 }
 
+//yaogang modify 20170927 进度条着色修改按时间回放
+//设置回放信息
+s32 ModPlayBackSetInfo(PbMgrHandle hPbMgr, const SPBInfo *pinfo)
+{
+	if(!hPbMgr || !pinfo)
+	{
+		printf("%s param invalid\n", __func__);
+		return -1;
+	}
+	
+	SPlayBackManager* pSPbMgr = (SPlayBackManager*)hPbMgr;
+	
+	u16 nPlayIndex = 0;
+	u16 nRealPlayIndex = 0;
+	//u32 nRealFilenums = 0;//csp modify
+	u32 i = 0;
+	
+	search_param_t sSearch;
+	memset(&sSearch,0,sizeof(search_param_t));
+	
+	pSPbMgr->nSrchStartTime = pinfo->nStartTime;
+	pSPbMgr->nSrchEndTime = pinfo->nEndTime;
+	
+	DEBUG("SearchRecFiles:searchStartTime = %d\n",pSPbMgr->nSrchStartTime);
+	DEBUG("SearchRecFiles:searchEndTime = %d\n",pSPbMgr->nSrchEndTime);
+	
+	pSPbMgr->nAllSrchFileNum = 0;
+
+	u8 ipc_chn;
+#if 1//yzw modify 缩短搜索时间
+	//sSearch.channel_no = pSearchParam->nMaskChn;
+	
+	for (i=0; i<pinfo->nPlayNum; ++i)
+	{
+		ipc_chn = pinfo->nPlayChn[i];
+		
+		if (0xff != ipc_chn)
+		{
+			sSearch.channel_no |= 1<<ipc_chn;
+		}
+	}
+    //printf("%s search chn_mask: 0x%x\n", __func__, sSearch.channel_no);
+	sSearch.play_no = nPlayIndex;
+	sSearch.start_time = pinfo->nStartTime;
+	sSearch.end_time = pinfo->nEndTime;
+	sSearch.type = pinfo->nMaskType;
+	
+	SPBRecfileInfo nRecFileInfos[MAX_SEARCH_NUM];
+	memset(nRecFileInfos, 0, sizeof(SPBRecfileInfo)*MAX_SEARCH_NUM);
+	//printf("SearchRecFiles:sizeof(SPBRecfileInfo)=%d,sizeof(recfileinfo_t)=%d\n",sizeof(SPBRecfileInfo),sizeof(recfileinfo_t));
+	
+	int nFileNum = search_all_rec_file(gp_sHddManager,
+										&sSearch,
+										(recfileinfo_t*)nRecFileInfos,
+										MAX_SEARCH_NUM);
+	//printf("all file num: %d\n", nFileNum);
+	
+	if(nFileNum > MAX_SEARCH_NUM) 
+	{
+		pSPbMgr->nAllSrchFileNum = 0;
+	}
+	else if(nFileNum < 0)
+	{
+		pSPbMgr->nAllSrchFileNum = MAX_SEARCH_NUM;
+	}
+	else
+	{
+		pSPbMgr->nAllSrchFileNum = nFileNum;
+	}
+	
+	for(i=0; i<pSPbMgr->nMaxChnNum; i++)
+	{
+		pSPbMgr->aPlaybackChnInfos[i].nRealFileNums = 0;
+		pSPbMgr->aPlaybackChnInfos[i].nFlagZoom = 2;
+		pSPbMgr->aPlaybackChnInfos[i].nPlayNo = -1;
+	#if 0	
+		if((1<<i)&(pSearchParam->nMaskChn))
+		{
+			pSPbMgr->aPlaybackChnInfos[i].nChnNo = i;
+			pSPbMgr->aPlaybackChnInfos[i].nPlayNo = nPlayIndex;
+			nPlayIndex++;
+		}
+    #endif
+	}
+
+	nPlayIndex = 0;
+	for (i=0; i<pinfo->nPlayNum; ++i)
+	{
+		ipc_chn = pinfo->nPlayChn[i];
+		
+		if (0xff != ipc_chn)
+		{
+			pSPbMgr->aPlaybackChnInfos[ipc_chn].nChnNo = ipc_chn;
+			pSPbMgr->aPlaybackChnInfos[ipc_chn].nPlayNo = i;
+			nPlayIndex++;
+		}
+	}
+
+    u8 file_chn;
+	for(i = 0; i < pSPbMgr->nAllSrchFileNum; i++)
+	{
+		//printf("nRecFileInfos[%d].nChn = %d, nMaxChnNum = %d\n", i, nRecFileInfos[i].nChn, pSPbMgr->nMaxChnNum);
+		if(nRecFileInfos[i].nChn <= pSPbMgr->nMaxChnNum)
+		{
+			//printf("%s file no: %d start time: %u, end time: %u\n",
+			//	__func__, i, nRecFileInfos[i].nStartTime, nRecFileInfos[i].nEndTime);
+			
+			file_chn = nRecFileInfos[i].nChn - 1;
+			memcpy(&pSPbMgr->aPlaybackChnInfos[file_chn].aRecFileInfos[pSPbMgr->aPlaybackChnInfos[file_chn].nRealFileNums], &nRecFileInfos[i], sizeof(SPBRecfileInfo));
+			pSPbMgr->aPlaybackChnInfos[file_chn].nRealFileNums++;
+		}
+	}
+	
+	for(i=0; i<pSPbMgr->nMaxChnNum; i++)
+	{
+		//printf("%s: search result: chn[%d] file num: %d\n", __func__, i, pSPbMgr->aPlaybackChnInfos[i].nRealFileNums);
+		if(pSPbMgr->aPlaybackChnInfos[i].nRealFileNums != 0)
+		{
+			nRealPlayIndex++;
+			DEBUG("SearchRecFiles:% chn has %d files\n",i,pSPbMgr->aPlaybackChnInfos[i].nRealFileNums);
+		}
+	}
+
+#endif
+	
+	pSPbMgr->nRealPlayNum = nPlayIndex;//回放窗口数量
+	
+	if(nRealPlayIndex == 0)
+	{
+		printf("no playback files\n");
+		return -1;
+	}
+	
+	//csp modify
+	for(i=0; i<pSPbMgr->nMaxChnNum; i++)
+	{
+		pSPbMgr->aPlaybackChnInfos[i].nCurIndex = pSPbMgr->aPlaybackChnInfos[i].nRealFileNums - 1;
+	}
+	
+	#if 1
+	pSPbMgr->nRecStartTime = 0xffffffff;
+	pSPbMgr->nRecEndTime = 0;
+	u8 flag_start = 0;
+	u8 flag_end = 0;
+	for(i=0; i<pSPbMgr->nMaxChnNum; i++)
+	{
+		if(pSPbMgr->aPlaybackChnInfos[i].nRealFileNums != 0)
+		{
+			u32 nLastFileIndex = pSPbMgr->aPlaybackChnInfos[i].nRealFileNums-1;
+			
+			//printf("chn[%d], pSearchParam->nStartTime = %ld, pSearchParam->nEndTime = %ld\n", i, pSearchParam->nStartTime, pSearchParam->nEndTime);
+			//printf("pSPbMgr->nRecStartTime = %lu, nStartTime = %ld\n", pSPbMgr->nRecStartTime, pSPbMgr->aPlaybackChnInfos[i].aRecFileInfos[nLastFileIndex].nStartTime);
+			
+			if(!flag_start)
+			{
+				if(pSPbMgr->aPlaybackChnInfos[i].aRecFileInfos[nLastFileIndex].nStartTime > pinfo->nStartTime)
+				{
+					if(pSPbMgr->aPlaybackChnInfos[i].aRecFileInfos[nLastFileIndex].nStartTime < pSPbMgr->nRecStartTime)
+					{
+						pSPbMgr->nRecStartTime = pSPbMgr->aPlaybackChnInfos[i].aRecFileInfos[nLastFileIndex].nStartTime;
+					}
+				}
+				else
+				{
+					pSPbMgr->nRecStartTime = pinfo->nStartTime;
+					flag_start = 1;
+				}
+			}
+			
+			if(!flag_end)
+			{
+				if(pSPbMgr->aPlaybackChnInfos[i].aRecFileInfos[0].nEndTime < pinfo->nEndTime)
+				{
+					if(pSPbMgr->aPlaybackChnInfos[i].aRecFileInfos[0].nEndTime > pSPbMgr->nRecEndTime)
+					{
+						pSPbMgr->nRecEndTime = pSPbMgr->aPlaybackChnInfos[i].aRecFileInfos[0].nEndTime;
+					}
+				}
+				else
+				{
+					pSPbMgr->nRecEndTime = pinfo->nEndTime;
+					flag_end= 1;
+				}
+			}
+		}
+	}
+	#endif
+	
+	return 0;
+}
+
+
+//playChn 回放窗口通道
+s32 ModPlayBackGetChnFileInfo(PbMgrHandle hPbMgr, u8 playChn, SPBRecfileInfo **ppfile, s32 *pRealFileNums)
+{
+	if(!hPbMgr || !ppfile || !pRealFileNums)
+	{
+		printf("%s param invalid\n", __func__);
+		return -1;
+	}
+	
+	SPlayBackManager* pSPbMgr = (SPlayBackManager*)hPbMgr;
+
+	if (playChn >= pSPbMgr->nMaxChnNum)
+	{
+		printf("%s Play chn: %d invalid\n", __func__, playChn);
+		return -1;
+	}
+
+	int i;
+	for (i=0; i<pSPbMgr->nMaxChnNum; ++i)
+	{		
+		if (playChn == pSPbMgr->aPlaybackChnInfos[i].nPlayNo)
+		{
+			*pRealFileNums = pSPbMgr->aPlaybackChnInfos[i].nRealFileNums;
+			*ppfile = pSPbMgr->aPlaybackChnInfos[i].aRecFileInfos;
+		}
+	}
+	
+	return 0;
+}
+
 s32 ModPlayBackByTime(PbMgrHandle hPbMgr, SPBSearchPara* pSearchParam)
 {
 	if(!hPbMgr || !pSearchParam)
@@ -3382,7 +3615,7 @@ s32 ModPlayBackControl(PbMgrHandle hPbMgr, EmPBCtlCmd emPBCtlcmd, s32 nContext)
 	u32 ack;
 	SendCtlMsg(pSPbManager,&sCtlMsg,&ack);
 	
-	//printf("ModPlayBackControl:emPBCtlcmd=%d over\n",emPBCtlcmd);
+	printf("ModPlayBackControl:emPBCtlcmd=%d over\n",emPBCtlcmd);
 	
 	return 0;
 }

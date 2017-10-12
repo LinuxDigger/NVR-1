@@ -6,6 +6,10 @@
 #include "System/Locales.h"
 #include "GUI/Pages/PageDesktop.h"//cw_panel
 #include "GUI/Pages/PageMainFrameWork.h"
+#include "GUI/Pages/PagePlayBackFrameWork.h"
+
+#define RIGHT_PAGE_WIDTH	(204)
+#define BOTTOM_PAGE_HEIGHT	(10/*上边沿*/+24/*刻度值*/+12*4/*进度条*/+24/*下边沿*/)	//106
 
 //full screen page
 CPageSearchRec::CPageSearchRec(VD_PCRECT pRect,VD_PCSTR psz/* = NULL*/,VD_BITMAP* icon/* = NULL*/,CPage * pParent/* = NULL*/, uint vstyle/* = 0*/)
@@ -221,6 +225,52 @@ void CPageSearchRec::OnClkBtn()
 	else if (pFocusButton == pBtnPlay)
 	{
 		printf("CPageSearchRec::OnClkBtn btn Play\n");
+
+		SBizSearchPara sBizSearchParam;
+		memset(&sBizSearchParam,0,sizeof(sBizSearchParam));
+
+		SBizPlaybackInfo pb_info;
+		memset(&pb_info, 0, sizeof(SBizPlaybackInfo));
+
+		sBizSearchParam.nStartTime 	= m_startTime;
+		sBizSearchParam.nEndTime	= m_endTime;
+
+		pb_info.nStartTime = sBizSearchParam.nStartTime;
+		pb_info.nEndTime = sBizSearchParam.nEndTime;
+
+		for (i=0; i<playChnNum; ++i)
+		{
+			if (0xff != m_WindowChn[i])
+			{
+				sBizSearchParam.nMaskChn |= 1<<m_WindowChn[i];
+			}
+		}
+
+		pb_info.nPlayNum = playChnNum;
+		pb_info.nPlayChn = m_WindowChn;
+		
+		sBizSearchParam.nMaskType = m_MaskType;
+		pb_info.nMaskType = m_MaskType;
+		
+		BizPlaybackSetInfo(&pb_info);
+		
+		SetSystemLockStatus(1);//cw_lock
+		
+		CPage** page = GetPage();//cw_rec
+		((CPageDesktop*)page[EM_PAGE_DESKTOP])->SetModePlaying();
+		this->Close();
+		//this->m_pParent->Close();//cw_test
+		CPagePlayBackFrameWork* m_pPagePlayBack = (CPagePlayBackFrameWork*)page[EM_PAGE_PLAYBACK];
+		m_pPagePlayBack->SetSearchPage((CPage *) this);
+		m_pPagePlayBack->SetPlayChnNum(playChnNum);
+		m_pPagePlayBack->SetPlayDate(m_startTime);
+		
+		BizStopPreview();
+		m_pPagePlayBack->Open();
+		BizStartPlayback(EM_BIZPLAY_TYPE_TIME,&sBizSearchParam);
+		
+		SetSystemLockStatus(0);
+		
 	}
 	else
 	{
@@ -295,11 +345,19 @@ void CPageSearchRec::OnSlider()
 void CPageSearchRec::AdjustChn()
 {
 	int i;
+
+	pBtnSingle->Enable(FALSE);
+	pBtnFour->Enable(FALSE);
+	
+	for (i=0; i<4; ++i)
+	{
+		pTextChn[i]->Show(TRUE);		
+		pComboBoxChn[i]->Show(TRUE);
+		m_pSlider[i]->Show(TRUE);
+	}
 	
 	if (playChnNum == 1)
 	{
-		pBtnSingle->Enable(FALSE);
-		//pBtnSingle->SetFocus(TRUE);
 		pBtnFour->Enable(TRUE);
 
 		for (i=1; i<4; ++i)
@@ -312,15 +370,6 @@ void CPageSearchRec::AdjustChn()
 	else if (playChnNum == 4)
 	{
 		pBtnSingle->Enable(TRUE);
-		pBtnFour->Enable(FALSE);
-		//pBtnFour->SetFocus(TRUE);
-
-		for (i=1; i<4; ++i)
-		{
-			pTextChn[i]->Show(TRUE);		
-			pComboBoxChn[i]->Show(TRUE);
-			m_pSlider[i]->Show(TRUE);
-		}
 	}
 	else
 	{
@@ -330,11 +379,13 @@ void CPageSearchRec::AdjustChn()
 
 void CPageSearchRec::Search()
 {
+	//printf("%s\n", __func__);
 	u32 startTime = 0;
 	u32 endTime = 0;
 	u8 MaskType = 0;
 	u32 MaskChn = 0;
 	int i = 0;
+	SBizPlaybackInfo pb_info;
 
 	//获得当前选中日期
 	SYSTEM_TIME stSelTime;
@@ -417,12 +468,14 @@ void CPageSearchRec::Search()
 		m_endTime = endTime;
 		b_search = 1;
 	}
+	//printf("%s 1 b_search: %d\n", __func__, b_search);
 
 	if (m_MaskType != MaskType)
 	{
 		m_MaskType = MaskType;
 		b_search = 1;
 	}
+	//printf("%s 2 b_search: %d\n", __func__, b_search);
 
 	if (memcmp(m_WindowChn, windowChn, sizeof(windowChn)))
 	{
@@ -430,12 +483,14 @@ void CPageSearchRec::Search()
 		
 		b_search = 1;
 	}
+	//printf("%s 3 b_search: %d\n", __func__, b_search);
 
 	if (!b_search)
 	{
 		return ;
 	}
 
+#if 0
 	memset(&sSearchPara, 0, sizeof(sSearchPara));
 	sSearchResult0.nFileNum = 0;
 	memset(sSearchResult0.psRecfileInfo, 0, 4000*sizeof(SBizRecfileInfo));
@@ -450,7 +505,16 @@ void CPageSearchRec::Search()
 		//failed
 		return ;
 	}
+#else
+	memset(&pb_info, 0, sizeof(SBizPlaybackInfo));
+	pb_info.nMaskType = m_MaskType;
+	pb_info.nStartTime = m_startTime;
+	pb_info.nEndTime = m_endTime;
+	pb_info.nPlayNum = playChnNum;
+	pb_info.nPlayChn = m_WindowChn;
 
+	BizPlaybackSetInfo(&pb_info);
+#endif
 #if 0
 	printf("search file result: %d\n", sSearchResult0.nFileNum);
 
@@ -469,8 +533,11 @@ void CPageSearchRec::dealResult()
 	int chn, i, j;
 	std::vector<int> v_indexs[4];	//每通道 存储sSearchResult0.psRecfileInfo[] 下标
 	std::vector<Range> v_ranges[4];	//每通道的录像区间
-
-	//fill v_indexs
+	u32 file_start = 0;
+	u32 file_end = 0;
+	
+#if 0
+	//fill v_indexs	
 	SBizRecfileInfo *psRecfileInfo = sSearchResult0.psRecfileInfo;
 	for (i=0; i<sSearchResult0.nFileNum; ++i)
 	{
@@ -501,8 +568,8 @@ void CPageSearchRec::dealResult()
 		}
 
 		//接下来要把时间连续的文件组合到一个Range
-		u32 file_start = 0;
-		u32 file_end = 0;
+		//u32 file_start = 0;
+		//u32 file_end = 0;
 		for (c_rev_iter = v_indexs[j].rbegin(); c_rev_iter != v_indexs[j].rend(); ++c_rev_iter)
 		{
 			file_start = psRecfileInfo[*c_rev_iter].nStartTime;
@@ -554,7 +621,80 @@ void CPageSearchRec::dealResult()
 		}
 		
 	}
+#else
+	//fill v_ranges
+	Range r;
+	SBizRecfileInfo *psRecfileInfo = NULL;
+	s32 nRealFileNums = 0;
 
+	for (j=0; j<playChnNum; ++j)
+	{
+		r.start = r.end = 0;
+		psRecfileInfo = NULL;
+		nRealFileNums = 0;
+		
+		//比较窗口通道和搜索结果通道
+		if (0xff != m_WindowChn[j])
+		{
+			if (0 == BizPlaybackGetChnFileInfo(j, &psRecfileInfo, &nRealFileNums))
+			{
+				//printf("playno: %d, chn: %d, nRealFileNums: %d\n", j, m_WindowChn[j], nRealFileNums);
+				if (nRealFileNums && psRecfileInfo)
+				{
+					for (i = nRealFileNums-1; i>-1; --i)
+					{
+						file_start = psRecfileInfo[i].nStartTime;
+						file_end = psRecfileInfo[i].nEndTime;
+
+						if (file_end < file_start)
+						{
+							printf("Error: %s: file_end(%u) < file_start(%u)\n", __func__, file_end, file_start);
+							continue;
+						}
+
+						if (r.end > file_start)
+						{
+							printf("Error: %s: range end(%u) > file_start(%u)\n", __func__, r.end, file_start);
+							continue;
+						}
+							
+						if (!r.start) //先确定start
+						{
+							r.start = file_start;
+							r.end = file_end;
+
+							//printf("start: %u\n", file_start);
+							continue;
+						}
+
+						//然后组合时间连续的文件
+						//间隔< 5秒，认为连续
+						if (file_start - r.end < 5)
+						{
+							r.end = file_end;
+						}
+						else //不连续
+						{
+							//printf("end: %u\n", r.end);
+
+							v_ranges[j].push_back(r);
+
+							r.start = r.end = 0;
+
+							++i;//为了在下一个循环重新处理这个文件
+						}
+					}
+					//保存最后一个区间
+					if (r.selfCheck())
+					{
+						//printf("end: %u\n", r.end);
+						v_ranges[j].push_back(r);
+					}
+				}
+			}
+		}
+	}
+#endif
 	//对录像最早和最晚的时间进行修正
 	//因为最早的文件可能跨越了零点，就是开始时间在前一天
 	#if 0
@@ -626,6 +766,7 @@ VD_BOOL CPageSearchRec::UpdateData( UDM mode )
 	
 	if(UDM_OPEN == mode)
 	{
+		#if 0
 		SYSTEM_TIME stTime1;
 		stTime1.year = tmptime->tm_year+1900;
 		stTime1.month = tmptime->tm_mon+1;
@@ -636,6 +777,7 @@ VD_BOOL CPageSearchRec::UpdateData( UDM mode )
 		
 		UpdateCalendar(&stTime1);
 		AdjustChn();
+		#endif
 	}
 	else if (UDM_CLOSED == mode)
 	{
@@ -644,6 +786,15 @@ VD_BOOL CPageSearchRec::UpdateData( UDM mode )
 	else if (UDM_EMPTY == mode)
 	{
 		playChnNum = 1;
+		SYSTEM_TIME stTime1;
+		stTime1.year = tmptime->tm_year+1900;
+		stTime1.month = tmptime->tm_mon+1;
+		stTime1.day = tmptime->tm_mday;
+		stTime1.hour = 0;
+		stTime1.minute = 0;
+		stTime1.second = 0;
+		
+		UpdateCalendar(&stTime1);
 		//time range
 		todayOpenTime = long_time-GetTimeZoneOffset(nTimeZone);
 		
@@ -672,17 +823,11 @@ VD_BOOL CPageSearchRec::UpdateData( UDM mode )
 		for(i=0; i<4; ++i)
 		{
 			pComboBoxChn[i]->SetCurSel(0);
-			pComboBoxChn[i]->Show(FALSE);
 
 			m_pSlider[i]->SetColorRange(vr);//empty
-			m_pSlider[i]->Show(FALSE);
 		}
-		
-		pComboBoxChn[0]->Show(TRUE);
-		m_pSlider[0]->Show(TRUE);
 
-		pBtnSingle->Enable(FALSE);
-		pBtnFour->Enable(TRUE);
+		AdjustChn();
 		
 	}
 	

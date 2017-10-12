@@ -130,6 +130,7 @@ OBJS :=	$(OBJ_DIR)/Bitmap	\
 		$(OBJ_DIR)/PageDesktop	\
 		$(OBJ_DIR)/PageStart	\
 		$(OBJ_DIR)/SliderCtrl	\
+		$(OBJ_DIR)/SliderCtrlPartColor	\
 		$(OBJ_DIR)/Static	\
 		$(OBJ_DIR)/sem	\
 		$(OBJ_DIR)/sys	\
@@ -164,6 +165,7 @@ OBJS :=	$(OBJ_DIR)/Bitmap	\
 		$(OBJ_DIR)/PageAddUser \
 		$(OBJ_DIR)/PageModifyUser \
 		$(OBJ_DIR)/PageSearch	\
+		$(OBJ_DIR)/PageSearchRec	\
 		$(OBJ_DIR)/PageFloat	\
 		$(OBJ_DIR)/PageChnSelect	\
 		$(OBJ_DIR)/PageAudioSelect	\

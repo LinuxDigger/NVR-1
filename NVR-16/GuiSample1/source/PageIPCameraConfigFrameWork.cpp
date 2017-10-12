@@ -8,7 +8,7 @@
 #include "GUI/Pages/PageDesktop.h"
 #include "lib_venc.h"
 
-//#define IPC_PROTOCOL_TEST //test record disk error by yaogang 20170222
+#define IPC_PROTOCOL_TEST //test record disk error by yaogang 20170222
 
 extern int IPC_GetNetworkParam(ipc_unit *ipcam, ipc_neteork_para_t *pnw);
 extern int IPC_SetNetworkParam(ipc_unit *ipcam, ipc_neteork_para_t *pnw);
@@ -23,9 +23,6 @@ enum IPC_PROTOCOL
 	PROTOCOL_YT,
 	PROTOCOL_YTHW,
 	PROTOCOL_NVR,
-#ifdef IPC_PROTOCOL_TEST
-	PROTOCOL_IPC_TEST,
-#endif
 };
 
 
@@ -844,13 +841,13 @@ void CPageIPCameraConfigFrameWork::OnClickSubPage()
 				{
 					pro_type = PRO_TYPE_NVR;
 				}
+				else
+				{
+					#ifdef IPC_PROTOCOL_TEST
+						pro_type = PRO_TYPE_IPC_TEST;
+					#endif
+				}
 			}
-		#ifdef IPC_PROTOCOL_TEST
-			else if(sel == PROTOCOL_IPC_TEST)
-			{
-				pro_type = PRO_TYPE_IPC_TEST;
-			}
-		#endif
 			
 			if(m_ipc_head)
 			{

@@ -8,7 +8,7 @@
 #include "biz.h"
 
 
-#define PB_BUTTON_NUM   17
+#define PB_BUTTON_NUM   (17+4)
 #define PB_STATIC_NUM   4
 
 #define MAX_SUB_PER_MAIN	5
@@ -46,6 +46,7 @@ public:
 	void SetPlayrate(int rate, int type); //type 1: forward  0:backward
 	void SetPbProg(int nProg);
 	void SetPbCurTime(char* curTime);
+	void SetPbCurTime(u32 curTime);
 	void SetPbTotalTime(char* totalTime);
 	void SetPbTotalTime(int totalTime);
 	void SetPbStartTime(int startTime);
@@ -55,7 +56,8 @@ public:
 	void SetDesktop(CPage* pDesktop);
 	VD_BOOL MsgProc(uint msg, uint wpa, uint lpa);	//消息处理
 	void SetPlayChnNum(int nChnNum);
-	void SetSearchPage(CPageSearch* pPage);
+	void SetPlayDate(u32 startTime);
+	void SetSearchPage(CPage* pPage);
 	void GetCurPlayMute(u8* mute);
 	void SetCurPlayMute(u8 mute);
 	void SetIsZoomed(u8 zoom);
@@ -95,8 +97,23 @@ private:
 	void OnClkPbCtl();
 	
 	CButton* pButton[PB_BUTTON_NUM];
-	CSliderCtrl* m_pSlider;
+	//CSliderCtrl* m_pSlider;
+	//进度条
+	CStatic* pTextSlider[25];//小时刻度
+	CSliderCtrlPartColor *m_pSlider[4];
+	int m_SliderRangeMode;//进度条范围模式(24hr 2hr 1hr 30min)
+	u32 m_CurPlayDate;//当前回放日期
+	//Range m_Range;//当前进度条范围
+	CMutex m_Mutex;//改变进度条显示区域时加锁，回放过程中和用户点击按键都会导致区域改变
+	void adjustSliderText(const Range &r, const int split_line_num);
+	void adjustSlider(u32 cur_pos, int SliderRangeMode);
+	//依赖EM_SLIDER_MODE_XX 得到进度条刻度一格的跨度
+	s32 getSliderSpan(int mode);
+	//依赖EM_SLIDER_MODE_XX 得到进度条的宽度
+	s32 getSliderWidth(int mode);
+	void InitSlider();
 	void OnSlider();
+	void OnClkBtnSlider();
 	
 	CCheckBox* m_pChnName;
 	CStatic* m_pStatic[PB_STATIC_NUM];
@@ -107,7 +124,8 @@ private:
 	CPagePlayBackVoColorSetup* m_pPagePlayBackVoColorSetup;
 	CPagePlayrateSelect* m_pPagePlayrate0;
 	CPagePlayrateSelect* m_pPagePlayrate1;
-	CPageSearch* m_pPageSearch;
+	//CPageSearch* m_pPageSearch;
+	CPage* m_pPageSearch;
 	
 	int nScreenWidth;
 	int nScreenHeight;

@@ -5165,7 +5165,7 @@ void CPageDesktop::SetCurVideoSize()//改变电子放大标准尺寸
 
 int CPageDesktop::ExitFromDrawStatue()
 {
-	printf("绘画模式下右键退出\n");
+	printf("%s\n", __func__);
 	
 	if((m_IsPbElecZoomDrawStatus || m_IsElecZoomDrawStatus) && IsDrawElecZoomArea)
 	{

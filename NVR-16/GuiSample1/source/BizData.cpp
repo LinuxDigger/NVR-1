@@ -716,6 +716,8 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 			printf("EventPreviewFreshDeal err-3, PreviewMode=%d\n", pBizPreviewData->emBizPreviewMode);
 			return -1;
 	}
+
+	//printf("yg EventPreviewFreshDeal 2\n");
 	
 	pPageStart->SetCurPreview(nStartChn);
 	pPageStart->SetCurPreviewMode(pBizPreviewData->emBizPreviewMode);
@@ -804,6 +806,8 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 		}
 		pDeskTop->ShowSplitLine(i + nXScale - 1, TRUE);
 	}
+
+	//printf("yg EventPreviewFreshDeal 3\n");
 	
 	if(pBizPreviewData->emBizPreviewMode == EM_BIZPREVIEW_PIP)//csp modify 20130501
 	{
@@ -838,6 +842,8 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 		}
 		preMaxNum = nMaxChn;
 	}
+
+	//printf("yg EventPreviewFreshDeal 4, nStartChn: %d, nMaxChn: %d\n", nStartChn, nMaxChn);
 	
 	for(i = nStartChn; i < nMaxChn; i++)
 	{
@@ -951,7 +957,8 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 		{
 			i = index;
 		}
-		
+
+		//printf("yg EventPreviewFreshDeal 4.1\n");
 		char chName[32] = {0};
 		GetChnName(i, chName, sizeof(chName));
 		//nOsdWidth是文本的宽度
@@ -965,14 +972,17 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 				nOsdWidth-=8;
 			}
 		}
-		
+
+		//printf("yg EventPreviewFreshDeal 4.2\n");
 		int bShowChName = GetDisplayNameCheck(i);
 		
 		if(bShowChName)
 		{
 			pDeskTop->SetChnName(i, CRect(x2, y2, x2 + nOsdWidth, y2 + nOsdHeight), strlen(chName)?chName:" ");
+			//printf("yg EventPreviewFreshDeal 4.3\n");
 			pDeskTop->ShowChnName(i, TRUE);
 		}
+		//printf("yg EventPreviewFreshDeal 4.4\n");
 
 		/*add by liu*/
 		char chKbps[10];
@@ -981,7 +991,7 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 		
 		x3 = (( i - nStartChn) % nXScale + 1) * nChnWidth;
 		nStreamWidth = strlen(chKbps) ? (strlen(chKbps)*TEXT_WIDTH/3) : 0;
-		
+		//printf("yg EventPreviewFreshDeal 4.5\n");
 		if(bShowChName)
 		{	
 			if(0 == (i+1-nStartChn)%nXScale) //最后一列通道
@@ -999,22 +1009,26 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 				tableRT[i].bottom = y2 + nOsdHeight;
 			}
 			//printf("yg set & show Chn%d Kbps\n", i);
-			pDeskTop->SetChnKbps(i, tableRT[i], chKbps);		
+			pDeskTop->SetChnKbps(i, tableRT[i], chKbps);
+			//printf("yg EventPreviewFreshDeal 4.6\n");
 			pDeskTop->ShowChnKbps(i, bizPreCfg.nShowChnKbps);
 		}
-		
+		//printf("yg EventPreviewFreshDeal 4.7\n");
 		y2 += CHNNAME_HEIGHT + 2;
 
 		if (IPC_GetLinkStatus(i) == 0)
 		{
+			//printf("yg EventPreviewFreshDeal 4.8\n");
 			//抓图图标处理
 			if (pDeskTop->ChnElseStateIsShow(i, EM_STATE_SNAP))
 			{
+				//printf("yg EventPreviewFreshDeal 4.9\n");
 				pDeskTop->ShowChnElseState(i, EM_STATE_SNAP, 0, 0, EM_CHNSTATE_HIDE);
 			}
 		}
 		else
 		{
+			//printf("yg EventPreviewFreshDeal 4.10\n");
 			pDeskTop->ShowChnElseState( i, EM_STATE_SNAP, x3-20*(3-EM_STATE_SNAP), y2, EM_CHNSTATE_1);
 		}
 /*
@@ -1041,12 +1055,13 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 			
 		//现场配置->设置"显示录像状态"时bizPreCfg.nShowRecState = 1
 		//printf("bizPreCfg.nShowRecState = %d\n",bizPreCfg.nShowRecState);
-		
+		//printf("yg EventPreviewFreshDeal 4.11\n");
 		if(bizPreCfg.nShowRecState)
 		{
 			if(bRecord[i] == 1) //是否在录像
 			{
 				pDeskTop->ShowChnState( i, EM_STATE_RECORD, x2, y2, EM_CHNSTATE_1 );
+				//printf("yg EventPreviewFreshDeal 4.12\n");
 				if(GetCurRecStatus(i) & 1)//是否手工录像
 				{
 					pDeskTop->ShowChnState( i, EM_STATE_MANUAL_REC, x2, y2, EM_CHNSTATE_1 );
@@ -1055,6 +1070,7 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 				{
 					pDeskTop->ShowChnState( i, EM_STATE_MANUAL_REC, x2, y2, EM_CHNSTATE_HIDE );
 				}
+				//printf("yg EventPreviewFreshDeal 4.13\n");
 				if(GetCurRecStatus(i) & 2)//是否定时录像
 				{
 					pDeskTop->ShowChnState( i, EM_STATE_TIMER, x2, y2, EM_CHNSTATE_1 );
@@ -1063,6 +1079,7 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 				{
 					pDeskTop->ShowChnState( i, EM_STATE_TIMER, x2, y2, EM_CHNSTATE_HIDE );
 				}
+				//printf("yg EventPreviewFreshDeal 4.14\n");
 			}
 			else
 			{
@@ -1082,6 +1099,7 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 				pDeskTop->ShowChnState( i, EM_STATE_RECORD, x2, y2, EM_CHNSTATE_HIDE);
 			}
 		}
+		//printf("yg EventPreviewFreshDeal 4.12\n");
 		
 		if(bMD[i] == 1)//是否移动侦探
 		{
@@ -1091,7 +1109,7 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 		{
 			pDeskTop->ShowChnState( i, EM_STATE_MD, x2, y2, EM_CHNSTATE_HIDE );
 		}
-
+		//printf("yg EventPreviewFreshDeal 4.13\n");
 		if(bSensorAlarm[i] == 1) //是否报警录像
 		{
 			pDeskTop->ShowChnState( i, EM_STATE_ALARM, x2, y2, EM_CHNSTATE_1 );
@@ -1101,6 +1119,8 @@ int EventPreviewFreshDeal(SBizPreviewData* pBizPreviewData)
 			pDeskTop->ShowChnState( i, EM_STATE_ALARM, x2, y2, EM_CHNSTATE_HIDE );
 		}
 	}
+
+	//printf("yg EventPreviewFreshDeal 5\n");
 	return 0;
 }
 
@@ -4773,7 +4793,7 @@ int BizEventCB(SBizEventPara* pSBizEventPara)
 					s32 nProg = pSBizEventPara->sBizProgress.nProgress;
 					time_t nCurTime = (time_t)(pSBizEventPara->sBizProgress.lCurSize/1000);
 					u32 nTotal = pSBizEventPara->sBizProgress.lTotalSize;
-					
+
 					if(0 == count)
 					{
 						((CPagePlayBackFrameWork*)g_pPages[EM_PAGE_PLAYBACK])->SetPbTotalTime(nTotal);
@@ -4781,6 +4801,19 @@ int BizEventCB(SBizEventPara* pSBizEventPara)
 						nStartTime = nCurTime;
 						count++;
 					}
+
+					
+					#if 1
+					//yaogang modify for playback 20170906
+					if(nCurTime != lastCurTime)
+					{						
+						((CPagePlayBackFrameWork*)g_pPages[EM_PAGE_PLAYBACK])->SetPbCurTime(nCurTime);
+						
+		 				lastCurTime = nCurTime;
+					}
+					
+					#else
+					
 					
 					u32 nNow = nCurTime - nStartTime;
 					
@@ -4813,14 +4846,18 @@ int BizEventCB(SBizEventPara* pSBizEventPara)
 						((CPagePlayBackFrameWork*)g_pPages[EM_PAGE_PLAYBACK])->SetPbTotalTime(szTotal);
 						lastTotal = nTotal;
 					}
+					#endif
 				}
 			}
 			break;
 		case EM_BIZ_EVENT_PLAYBACK_DONE:
 			{
+				//yaogang modify for playback 20170906
+				lastCurTime = 0;
+				
 				if(g_pPages)
 				{
-					printf("EM_BIZ_EVENT_PLAYBACK_DONE...\n");
+					//printf("EM_BIZ_EVENT_PLAYBACK_DONE...\n");
 					
 					//((CPagePlayBackFrameWork*)g_pPages[EM_PAGE_PLAYBACK])->m_Mutex.Enter();//csp modify 20121118
 					
@@ -15521,6 +15558,31 @@ void GetTimeForBackup2( u32 t, char* szTime )//只有时间
 			ptm->tm_hour,// = h;
 			ptm->tm_min,// = min;
 			ptm->tm_sec// = s;
+		);
+		//printf("snap file time,%04d-%02d-%02d %02d:%02d:%02d, %s\n",ptm->tm_year,ptm->tm_mon,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,tmp);
+		strcpy(szTime, tmp);
+	}
+}
+
+void GetTimeForBackup3( u32 t, char* szTime )//只有时间(hour : min)
+{
+	time_t tmpT = t;
+	
+	//csp modify 20131213
+	int nTimeZone = GetTimeZone();
+	tmpT += GetTimeZoneOffset(nTimeZone);
+	
+	struct tm tmIns;
+	struct tm* ptm = &tmIns;
+	gmtime_r(&tmpT, &tmIns);
+	
+	char tmp[20] = {0};
+	
+	if(szTime)
+	{
+		sprintf(tmp, "%02d:%02d",
+			ptm->tm_hour,// = h;
+			ptm->tm_min// = min;
 		);
 		//printf("snap file time,%04d-%02d-%02d %02d:%02d:%02d, %s\n",ptm->tm_year,ptm->tm_mon,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,tmp);
 		strcpy(szTime, tmp);

@@ -16,6 +16,17 @@ typedef struct
 	void* pReserverInfo;
 } SPBSearchPara;
 
+typedef struct
+{
+	u8 nMaskType;
+	u8 nPlayNum;//回放窗口数量
+	u8 *nPlayChn;//eg: nPlayChn[i] = j; 回放 窗口i 播放通道j 的录像; j=0xff 无效通道即i 回放窗口不播放录像
+	u32 nStartTime;
+	u32 nEndTime;
+	void* pReserverInfo;
+} SPBInfo;
+
+
 typedef enum
 {
 	EM_CTL_NULL=0,
@@ -131,6 +142,13 @@ extern "C"
 
 //初始化回放模块
 PbMgrHandle ModPlayBackInit(u32 nMaxChn, void *pContent, u64 nChnMaskOfD1);
+
+//yaogang modify 20170927 进度条着色修改按时间回放
+//设置回放信息
+s32 ModPlayBackSetInfo(PbMgrHandle hPbMgr, const SPBInfo *pinfo);
+//playChn 回放窗口通道
+s32 ModPlayBackGetChnFileInfo(PbMgrHandle hPbMgr, u8 playChn, SPBRecfileInfo **ppfile, s32 *pRealFileNums);
+
 
 //开始按时间回放 
 s32 ModPlayBackByTime(PbMgrHandle hPbMgr, SPBSearchPara* pSearchParam);

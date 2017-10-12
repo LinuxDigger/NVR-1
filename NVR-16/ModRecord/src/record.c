@@ -2671,8 +2671,8 @@ void RecordMainFxn(void* ID)
 								
 								//if(sMsg.nChn == 3)
 								{
-									//fprintf(stdout, "***chn[%d], format:%d, file:%s, open_offset:%u, fd: %d***\n", 
-									//	sMsg.nChn, header.emResolution, recfilename, open_offset, fileno(file[sMsg.nChn]->stream));
+									fprintf(stdout, "***chn[%d], format:%d, file:%s, open_offset:%u, fd: %d***\n", 
+										sMsg.nChn, header.emResolution, recfilename, open_offset, fileno(file[sMsg.nChn]->stream));
 								}
 								
 								max_pts[sMsg.nChn] = header.nPts;//csp modify

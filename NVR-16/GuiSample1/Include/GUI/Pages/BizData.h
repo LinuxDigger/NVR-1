@@ -1022,6 +1022,8 @@ u32 MakeTimeForBackup( int y, int m, int d, int h, int min, int s);
 
 void GetTimeForBackup( u32 t, char* szTime );//时间和日期
 void GetTimeForBackup2( u32 t, char* szTime );//只有时间
+void GetTimeForBackup3( u32 t, char* szTime );//只有时间(hour : min)
+
 u32 GetLocalTimeForBackup();
 
 s32 FxnKeycodeShut();//cw_shutdown

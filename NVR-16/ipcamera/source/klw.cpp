@@ -504,7 +504,7 @@ static unsigned char test_status = 0;
 static FILE *pf_test = NULL;
 #endif
 
-int KLW_DataCB(unsigned int u32ChnHandle,/* 通道句柄 */
+static int KLW_DataCB(unsigned int u32ChnHandle,/* 通道句柄 */
                      unsigned int u32DataType,/* 数据类型，详见VVV_STREAM_TYPE_E 0x01-视频，0x02-音频*/
                      unsigned char* pu8Buffer,/* 数据包含帧头 */
                      unsigned int u32Length,  /* 数据长度 */

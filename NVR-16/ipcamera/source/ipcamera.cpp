@@ -930,6 +930,8 @@ void  IPC_set_alarm_IPCCover(int chn)
 
 int IPC_GetLinkStatus(int chn)
 {
+	//printf("%s 1\n", __func__);
+	
 	if(!g_init_flag)
 	{
 		return 0;
@@ -950,7 +952,8 @@ int IPC_GetLinkStatus(int chn)
 	}
 	
 	pthread_mutex_unlock(&g_stream_info[chn].lock);
-	
+
+	//printf("%s 2\n", __func__);
 	return status;
 }
 
@@ -1518,7 +1521,7 @@ int IPC_Start(int chn)
 		g_stream_info[chn].ops.GetLinkStatus = IpcTest_GetLinkStatus;
 		g_stream_info[chn].ops.Snapshot_RegisterCB = NULL;
 		
-		IPC_CMD_SetTime(chn, 0, 1);
+		//IPC_CMD_SetTime(chn, 0, 1);
 		
 		ret = IpcTest_Start(chn, DoRealStreamCallBack, chn, NULL, ipcam->dwIp, ipcam->wPort, ipcam->user, ipcam->pwd, ipcam->trans_type);
 		if (ret)
@@ -2406,6 +2409,8 @@ void IPC_Sort(ipc_node** head)
 //ËÑË÷ÍøÂçÉãÏñ»ú
 int IPC_Search(ipc_node** extern_head, unsigned int protocol_type, unsigned char check_conflict)
 {
+	printf("%s protocol_type: %d\n", __func__, protocol_type);
+	
 	if(extern_head == NULL)
 	{
 		return -1;
