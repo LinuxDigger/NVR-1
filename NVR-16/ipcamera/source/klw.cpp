@@ -392,7 +392,7 @@ int OnAlarmFunc(unsigned int u32ChnHandle,/* Í¨µÀ¾ä±ú */
 		return -1;
 	}
 	//printf("OnAlarmFunc Alarm type=%d, Alarm Data=%s, User Data=%d\n",u32DataType,pu8Buffer,(int)pUserData);
-	
+	printf("OnAlarmFunc Alarm type: %d, chn: %d\n",u32DataType, chn);
 	//if(u32DataType & 0x4)
 	//if(u32DataType == 0x4)
 	if (VVV_STREAM_MD_ONLY == u32DataType)//0x4
