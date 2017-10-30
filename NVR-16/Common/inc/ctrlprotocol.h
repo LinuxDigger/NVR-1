@@ -1944,6 +1944,8 @@ void SetCliAckPort(u16 wPort);
 u16  CPLibInit(u16 wPort);
 u16  CPLibCleanup();
 
+//修改IP 后，通知重新创建响应CMS搜索的socket
+void RecreateMulticastSocket(void);
 /************************
 **07-08-21 verifying connecting req from custorm
 *************************/

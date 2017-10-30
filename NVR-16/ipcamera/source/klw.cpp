@@ -51,6 +51,16 @@ typedef struct
 	pthread_mutex_t lock;
 }klw_client_info;
 
+typedef struct
+{
+	unsigned int b_alarm;//是否处于报警中
+	unsigned long long report_pts;//OnAlarmFunc  alarm event timestamp
+	pthread_mutex_t lock;
+}klw_alarm_extsensor_info_t;
+
+static klw_alarm_extsensor_info_t *g_alarm_extsensor_info = NULL;
+
+
 //volatile SNAP_CALLBACK Snap_CB[32];
 //volatile bool bFlagSnapBusy[32];
 //二次回调函数是否可以修改，0可以修改，1等待
@@ -93,16 +103,33 @@ unsigned int KLW_get_alarm_IPCCover(void)
 
 int KLW_Init(unsigned int max_client_num)
 {
+	int i = 0;
+	
 	if(max_client_num <= 0)
 	{
 		return -1;
 	}
 	
 	g_klw_client_count = max_client_num;
+
+	g_alarm_extsensor_info = (klw_alarm_extsensor_info_t *)malloc(g_klw_client_count/2*sizeof(klw_alarm_extsensor_info_t));
+	if (NULL == g_alarm_extsensor_info)
+	{
+		printf("Error: %s malloc g_alarm_extsensor_info failed\n", __func__);
+		return -1;
+	}
+	for (i = 0; i < (int)g_klw_client_count/2; i++)
+	{
+		pthread_mutex_init(&g_alarm_extsensor_info[i].lock, NULL);
+	}
 	
 	g_klwc_info = (klw_client_info *)malloc(g_klw_client_count*sizeof(klw_client_info));
 	if(g_klwc_info == NULL)
 	{
+		printf("Error: %s malloc g_klwc_info failed\n", __func__);
+
+		free(g_alarm_extsensor_info);
+		g_alarm_extsensor_info = NULL;
 		return -1;
 	}
 	memset(g_klwc_info, 0, g_klw_client_count*sizeof(klw_client_info));
@@ -115,7 +142,6 @@ CLOCK_MONOTONIC：Represents monotonic time. Cannot be set. 表示单调时间，
 	pthread_condattr_init(&condattr);
 	pthread_condattr_setclock(&condattr, CLOCK_MONOTONIC);
 	
-	int i = 0;
 	for(i = 0; i < (int)g_klw_client_count; i++)
 	{
 		g_klwc_info[i].u32DevHandle = INVALID_DEVHDL;
@@ -368,6 +394,63 @@ int KLW_SetNetworkParam(ipc_unit *ipcam, ipc_neteork_para_t *pnw)
 }
 
 #define MDCOUNT	30
+static unsigned long long SystemGetMSCount64(void)
+{
+
+	#if 0 // yzw modify 20111123
+	
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (((uint64)tv.tv_sec * 1000) + tv.tv_usec / 1000) & 0xffffffff;
+	
+	#else
+	unsigned long long val;
+	struct timespec time;
+	
+	clock_gettime(CLOCK_MONOTONIC, &time);
+
+	val = time.tv_sec;
+	val = val*1000 + time.tv_nsec/(1000*1000);
+
+	return val;
+	#endif
+} 
+unsigned int KLW_get_alarm_IPCExt(int chn)
+{
+	if(chn < 0 || chn >= (int)(g_klw_client_count/2))
+	{
+		printf("Error: %s param chn%d error\n", __func__, chn);
+		return 0;
+	}
+	
+	unsigned long long pts = SystemGetMSCount64();
+	unsigned int b_alarm = 0;
+
+	pthread_mutex_lock(&g_alarm_extsensor_info[chn].lock);
+		
+	if (g_alarm_extsensor_info[chn].b_alarm)
+	{
+		if (pts < g_alarm_extsensor_info[chn].report_pts)//异常
+		{
+			g_alarm_extsensor_info[chn].b_alarm = 0;
+			g_alarm_extsensor_info[chn].report_pts = 0;
+		}
+		else if (pts - g_alarm_extsensor_info[chn].report_pts >= 30*1000)//报警PTS 一分钟还没有更新，则认为报警消失
+		{
+			printf("%s report_pts >= 30s\n", __func__);
+			g_alarm_extsensor_info[chn].b_alarm = 0;
+			g_alarm_extsensor_info[chn].report_pts = 0;
+		}
+		else
+		{
+			b_alarm = 1;
+		}
+	}
+	
+	pthread_mutex_unlock(&g_alarm_extsensor_info[chn].lock);
+	
+	return b_alarm;
+}
 
 //receive alarm data
 int OnAlarmFunc(unsigned int u32ChnHandle,/* 通道句柄 */
@@ -391,10 +474,17 @@ int OnAlarmFunc(unsigned int u32ChnHandle,/* 通道句柄 */
 		printf("OnAlarmFunc chn%d error\n",chn);
 		return -1;
 	}
+
+	if (chn >= (int)(g_klw_client_count/2))
+	{
+		chn -= (int)(g_klw_client_count/2);
+	}
+	
 	//printf("OnAlarmFunc Alarm type=%d, Alarm Data=%s, User Data=%d\n",u32DataType,pu8Buffer,(int)pUserData);
-	printf("OnAlarmFunc Alarm type: %d, chn: %d\n",u32DataType, chn);
+	//printf("OnAlarmFunc Alarm type: %d, chn: %d, u32Length: %d, u64TimeStamp: %llu\n",u32DataType, chn, u32Length, u64TimeStamp);
 	//if(u32DataType & 0x4)
 	//if(u32DataType == 0x4)
+	
 	if (VVV_STREAM_MD_ONLY == u32DataType)//0x4
 	{
 		g_klwc_info[chn].nMDEvent = MDCOUNT;
@@ -402,13 +492,21 @@ int OnAlarmFunc(unsigned int u32ChnHandle,/* 通道句柄 */
 	else if (VVV_STREAM_SENSORIN_ONLY == u32DataType)
 	{
 		//printf("yg ipc_ext_alarm chn: %d\n", chn);
-		 IPC_set_alarm_IPCExt(chn);
+		//IPC_set_alarm_IPCExt(chn);
+		pthread_mutex_lock(&g_alarm_extsensor_info[chn].lock);
 		
+		if (!g_alarm_extsensor_info[chn].b_alarm)
+		{
+			g_alarm_extsensor_info[chn].b_alarm = 1;//有报警
+		}
+		g_alarm_extsensor_info[chn].report_pts = SystemGetMSCount64();
+		
+		pthread_mutex_unlock(&g_alarm_extsensor_info[chn].lock);
 	}
 	else if (VVV_STREAM_SHELTER_ONLY == u32DataType)
 	{
 		//printf("yg ipc_cover_alarm chn: %d\n", chn);
-		 IPC_set_alarm_IPCCover(chn);
+		IPC_set_alarm_IPCCover(chn);
 	}
 	
 	
@@ -1001,6 +1099,17 @@ int KLW_Stop(int chn)
 	//printf("%s unlock1 chn%d\n", __func__, chn);	
 	pthread_mutex_unlock(&g_klwc_info[chn].lock);
 	//printf("%s unlock2 chn%d\n", __func__, chn);
+
+	if (chn < (int)(g_klw_client_count/2))
+	{
+		pthread_mutex_lock(&g_alarm_extsensor_info[chn].lock);
+			
+		g_alarm_extsensor_info[chn].b_alarm = 0;
+		g_alarm_extsensor_info[chn].report_pts = 0;	
+		
+		pthread_mutex_unlock(&g_alarm_extsensor_info[chn].lock);
+	}
+	
 	printf("%s chn%d success\n", __func__, chn);
 	return 0;
 }

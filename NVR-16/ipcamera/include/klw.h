@@ -52,6 +52,7 @@ int KLW_CMD_RequestIFrame(int chn);
 int KLW_CMD_GetAudioSwitchStatus(int chn);
 int KLW_CMD_SetAudioSwitchStatus(int chn, int bswitch);
 
+unsigned int KLW_get_alarm_IPCExt(int chn);
 
 
 

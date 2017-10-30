@@ -374,6 +374,10 @@ static MutexHandle g_hSyncMutex;
 static SemHandle   g_hSyncSem;
 static u16		   g_wSyncNumber = 0;//等待同步的消息的流水号
 
+//修改IP 后，通知重新创建响应CMS搜索的socket
+static int b_recreate_multicast_socket = 0;
+static MutexHandle g_Mutex_multicast;
+
 
 static SemHandle   g_hFindSem;
 
@@ -1266,6 +1270,88 @@ void *CPP2PProc(void *pParam)
 
 u32 GetLocalIp();
 
+//修改IP 后，通知重新创建响应CMS搜索的socket
+void RecreateMulticastSocket(void)
+{
+	if (bCPInit)
+	{
+		LockMutex(g_Mutex_multicast);
+		b_recreate_multicast_socket = 1;
+		UnlockMutex(g_Mutex_multicast);
+	}
+}
+
+//创建socket 并加入组播
+int create_socket_add_membership(void)
+{
+	struct sockaddr_in ser;
+	SOCKHANDLE serSocket;
+	
+	serSocket = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+	if(serSocket == SOCKET_ERROR)
+	{
+		printf("%s sersocket Error!\n", __func__);
+		//SockClose(serSocket);
+		return INVALID_SOCKET;
+	}
+	
+	/************************************************************************/
+	/*绑定socket                                                            */
+	/************************************************************************/
+	memset(&ser,0,sizeof(ser));
+	ser.sin_family = AF_INET;
+	ser.sin_port = htons(SEARCHPORT);
+	ser.sin_addr.s_addr = INADDR_ANY;
+	if(bind(serSocket,(struct sockaddr*)&ser,sizeof(ser)) == SOCKET_ERROR)
+	{
+		printf("%s bind error!\n", __func__);
+		SockClose(serSocket);
+		return INVALID_SOCKET;
+	}
+	
+	/************************************************************************/
+	/*加入组播                                                */
+	/************************************************************************/	
+	struct ip_mreq mreq;
+	memset(&mreq,0,sizeof(struct ip_mreq));
+	mreq.imr_multiaddr.s_addr = inet_addr(MULTICASTGROUP);
+	mreq.imr_interface.s_addr = INADDR_ANY;
+	if(setsockopt(serSocket,IPPROTO_IP,IP_ADD_MEMBERSHIP,(const char*)&mreq,sizeof(mreq)) == SOCKET_ERROR)
+	{
+		printf("%s setsockopt error!\n", __func__);
+		SockClose(serSocket);
+		return INVALID_SOCKET;
+	}
+
+	printf("%s success\n", __func__);
+	return serSocket;
+}
+
+//退出多播组
+int drop_membership(SOCKHANDLE serSocket)
+{
+	if (serSocket == INVALID_SOCKET)
+	{
+		return SOCKET_ERROR;
+	}
+	
+	/************************************************************************/
+	/*退出组播												  */
+	/************************************************************************/	
+	struct ip_mreq mreq;
+	memset(&mreq,0,sizeof(struct ip_mreq));
+	mreq.imr_multiaddr.s_addr = inet_addr(MULTICASTGROUP);
+	mreq.imr_interface.s_addr = INADDR_ANY;
+	if(setsockopt(serSocket,IPPROTO_IP,IP_DROP_MEMBERSHIP,(const char*)&mreq,sizeof(mreq)) == SOCKET_ERROR)
+	{
+		printf("%s setsockopt error!\n", __func__);
+		
+		return SOCKET_ERROR;
+	}
+
+	return 0;
+}
+
 void *CPAckSearchProc(void *pParam)
 {
 #ifndef WIN32
@@ -1282,207 +1368,223 @@ void *CPAckSearchProc(void *pParam)
 	
 	if(type == CTRL_DEVICESEARCH_ACKSERVER)//接收搜索组播，然后回应
 	{
-		struct sockaddr_in ser;
-		SOCKHANDLE serSocket;
-		memset(&ser,0,sizeof(ser));
-		ser.sin_family = AF_INET;
-		ser.sin_port = htons(SEARCHPORT);
-		ser.sin_addr.s_addr = INADDR_ANY;
-		serSocket = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
-		if(serSocket == SOCKET_ERROR)
-		{
-			//printf("sersocket Error! %d\n",WSAGetLastError());
-			SockClose(serSocket);
-			return 0;
-		}
-		
-		/************************************************************************/
-		/*绑定socket                                                            */
-		/************************************************************************/
-		if(bind(serSocket,(struct sockaddr*)&ser,sizeof(ser)) == SOCKET_ERROR)
-		{
-			//printf("bind error! %d\n",WSAGetLastError());
-			SockClose(serSocket);
-			return 0;
-		}
-		
-		/************************************************************************/
-		/*加入组播                                                */
-		/************************************************************************/	
-		{
-			struct ip_mreq mreq;
-			memset(&mreq,0,sizeof(struct ip_mreq));
-			mreq.imr_multiaddr.s_addr = inet_addr(MULTICASTGROUP);
-			mreq.imr_interface.s_addr = INADDR_ANY;
-			if(setsockopt(serSocket,IPPROTO_IP,IP_ADD_MEMBERSHIP,(const char*)&mreq,sizeof(mreq)) == SOCKET_ERROR)
-			{
-				printf("setsockopt error!\n");
-				SockClose(serSocket);
-				return 0;
-			}
-		}
+		SOCKHANDLE serSocket = INVALID_SOCKET;
+		struct sockaddr_in cli;
+		socklen_t len = sizeof(struct sockaddr_in);
+		int ret = 0;
+		char buf[256] = {0};
 		
 		while(1)
 		{
-			struct sockaddr_in cli;
-			socklen_t len = sizeof(struct sockaddr_in);
-			int ret = 0;
-			char buf[256] = {0};
-			memset(&cli,0,sizeof(cli));
+			LockMutex(g_Mutex_multicast);
 			
-			if((ret = (recvfrom(serSocket,buf,sizeof(buf),0,(struct sockaddr*)&cli,&len))) == SOCKET_ERROR)
+			if (b_recreate_multicast_socket)
+			{	
+				b_recreate_multicast_socket = 0;
+
+				if (serSocket != INVALID_SOCKET)
+				{
+					drop_membership(serSocket);
+					SockClose(serSocket);
+					serSocket = INVALID_SOCKET;
+				}
+			}
+			
+			UnlockMutex(g_Mutex_multicast);
+			
+			if (INVALID_SOCKET == serSocket)
 			{
-#ifdef WIN32
-				printf("recvfrom error! %d \n",WSAGetLastError());
-#else
-				printf("recvfrom error! %d \n",errno);
-#endif
+				serSocket = create_socket_add_membership();
+			}
+
+			if (INVALID_SOCKET == serSocket)
+			{
+				printf("%s create_socket_add_membership failed\n", __func__);
+				usleep(100*1000);
 			}
 			else
 			{
-				ifly_ProtocolHead_t prohdr;
-				u16 ackport = 0;
-				
-				if(ret < sizeof(ifly_ProtocolHead_t))
+				memset(&cli,0,sizeof(cli));
+
+			#if 0
+				ret = (recvfrom(serSocket,buf,sizeof(buf),0,(struct sockaddr*)&cli,&len))
+				if(ret == SOCKET_ERROR)
 				{
-					continue;
+				#ifdef WIN32
+					printf("recvfrom error! %d \n",WSAGetLastError());
+				#else
+					printf("recvfrom error! %d \n",errno);
+				#endif
 				}
-				
-				memcpy(&prohdr, buf, sizeof(ifly_ProtocolHead_t));//csp modify 20130405
-				
-				#if 0//def JIUAN_2_UPNP
-				printf("LAN search1 %s,lan_productnum = %s\n",prohdr.safeguid,lan_productnum);
-				ret = strncmp((char *)prohdr.safeguid,lan_productnum,sizeof(prohdr.safeguid));	
-				if(ret != 0)
+			#else
+				ret = (recvfrom(serSocket,buf,sizeof(buf), MSG_DONTWAIT,(struct sockaddr*)&cli,&len));
+				if(ret == SOCKET_ERROR)
 				{
-					if(memcmp(prohdr.safeguid, gc_protocolGUID, 16) != 0)
+					if ((errno != EAGAIN) && (errno != EWOULDBLOCK))
 					{
-						printf("unknown search2 %s\n",prohdr.safeguid);
+						drop_membership(serSocket);
+						SockClose(serSocket);
+						serSocket = INVALID_SOCKET;
+						
+						#ifdef WIN32
+							printf("recvfrom error! %d \n",WSAGetLastError());
+						#else
+							printf("%s: recvfrom error! %d \n", __func__, errno);
+						#endif	
+					}
+				}
+				else
+				{
+					ifly_ProtocolHead_t prohdr;
+					u16 ackport = 0;
+					
+					if(ret < sizeof(ifly_ProtocolHead_t))
+					{
 						continue;
+					}
+					
+					memcpy(&prohdr, buf, sizeof(ifly_ProtocolHead_t));//csp modify 20130405
+					
+					#if 0//def JIUAN_2_UPNP
+					printf("LAN search1 %s,lan_productnum = %s\n",prohdr.safeguid,lan_productnum);
+					ret = strncmp((char *)prohdr.safeguid,lan_productnum,sizeof(prohdr.safeguid));	
+					if(ret != 0)
+					{
+						if(memcmp(prohdr.safeguid, gc_protocolGUID, 16) != 0)
+						{
+							printf("unknown search2 %s\n",prohdr.safeguid);
+							continue;
+						}
+						else
+						{
+							printf("LAN search3 %s\n",prohdr.safeguid);
+						}
 					}
 					else
 					{
-						printf("LAN search3 %s\n",prohdr.safeguid);
+						printf("LAN search4 %s for getinfo\n",prohdr.safeguid);
 					}
-				}
-				else
-				{
-					printf("LAN search4 %s for getinfo\n",prohdr.safeguid);
-				}
-				#else
-				if(memcmp(prohdr.safeguid, gc_protocolGUID, 16))
-				{
-					continue;
-				}
-				#endif
-				
-				//memcpy(&prohdr, buf, sizeof(ifly_ProtocolHead_t));//csp modify 20130405
-				
-				/*
-				if(memcmp(prohdr.safeguid, gc_protocolGUID, 16))
-				{
-					continue;
-				}
-				*/
-				
-				if(prohdr.byConnType == 0x3)	//0x3：广播搜索
-				{
-					//解析端口
-					memcpy(&ackport, prohdr.reserved, sizeof(u16));
-					ackport = ntohs(ackport);
-					printf("get ackport = %d\n",ackport);
-					
-					if(0 == ackport)//兼容当前固定端口
+					#else
+					if(memcmp(prohdr.safeguid, gc_protocolGUID, 16))
 					{
-						ackport = ACKSEARCHPORT;
-					}
-					
-					struct sockaddr_in rem;
-					memset(&rem,0,sizeof(rem));
-					rem.sin_family = AF_INET;
-					rem.sin_port = htons(ackport);
-					rem.sin_addr.s_addr = cli.sin_addr.s_addr;
-					
-					SOCKHANDLE remSocket = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
-					if(remSocket == SOCKET_ERROR)
-					{
-						//printf("remsocket Error! %d\n",WSAGetLastError());
-						//SockClose(remSocket);//csp modify 20130405
 						continue;
-					}
-					
-					#if 0//csp modify 20130405
-					//u32 localip = GetLocalIp(NULL);
-					u32 localip = GetLocalIp();
-					if(localip != g_deviceInfo.deviceIP)
-					{
-						printf("update device ip from 0x:%08x to 0x:%08x",g_deviceInfo.deviceIP,localip);
-						g_deviceInfo.deviceIP = localip;
 					}
 					#endif
-					printf("%s nNVROrDecoder: %d\n", __func__, g_deviceInfo.nNVROrDecoder);
-					if((sendto(remSocket,(char *)&g_deviceInfo,sizeof(g_deviceInfo),0,(struct sockaddr*)&rem,sizeof(rem))) == SOCKET_ERROR)
+					
+					//memcpy(&prohdr, buf, sizeof(ifly_ProtocolHead_t));//csp modify 20130405
+					
+					/*
+					if(memcmp(prohdr.safeguid, gc_protocolGUID, 16))
 					{
-						//printf("sendto error! %d\n",WSAGetLastError());
-						SockClose(remSocket);
 						continue;
 					}
+					*/
 					
-					//printf("send : %s\nto : %s\n",buf,inet_ntoa(rem.sin_addr));
-					
-					SockClose(remSocket);
-				}
-				else if(prohdr.byConnType == 0x4)	//0x4  轮巡同步(只对已经使能轮巡的设备有效)
-				{
-					printf("patrol synchronous\n");
-					int ret;
-					
-					SModConfigPreviewParam sConfig;
-
-					ret = ModConfigGetParam(EM_CONFIG_PARA_PREVIEW, &sConfig, 0);					
-					if (ret == 0)
+					if(prohdr.byConnType == 0x3)	//0x3：广播搜索
 					{
-						if (sConfig.nIsPatrol == 1) //设备已经使能轮巡
+						//解析端口
+						memcpy(&ackport, prohdr.reserved, sizeof(u16));
+						ackport = ntohs(ackport);
+						printf("get multicast search msg\n");
+						
+						if(0 == ackport)//兼容当前固定端口
 						{
-							sConfig.nIsPatrol = 0;	//先关闭
-							
-							ret = ModConfigSetParam(EM_CONFIG_PARA_PREVIEW, &sConfig, 0);
-							if (ret == 0)
-							{
-								SPreviewPatrolPara sPatrolPara;
-								sPatrolPara.emPreviewMode = sConfig.nPatrolMode;
-								sPatrolPara.nInterval = sConfig.nInterval;
-								sPatrolPara.nIsPatrol = sConfig.nIsPatrol;
-								sPatrolPara.nStops = sConfig.nStops;
-								memcpy(sPatrolPara.pnStopModePara, sConfig.pnStopModePara, sConfig.nStops);
-								ModPreviewSetPatrol(&sPatrolPara);
-							}
+							ackport = ACKSEARCHPORT;
+						}
+						
+						struct sockaddr_in rem;
+						memset(&rem,0,sizeof(rem));
+						rem.sin_family = AF_INET;
+						rem.sin_port = htons(ackport);
+						rem.sin_addr.s_addr = cli.sin_addr.s_addr;
+						
+						SOCKHANDLE remSocket = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+						if(remSocket == SOCKET_ERROR)
+						{
+							//printf("remsocket Error! %d\n",WSAGetLastError());
+							//SockClose(remSocket);//csp modify 20130405
+							continue;
+						}
+						
+						#if 0//csp modify 20130405
+						//u32 localip = GetLocalIp(NULL);
+						u32 localip = GetLocalIp();
+						if(localip != g_deviceInfo.deviceIP)
+						{
+							printf("update device ip from 0x:%08x to 0x:%08x",g_deviceInfo.deviceIP,localip);
+							g_deviceInfo.deviceIP = localip;
+						}
+						#endif
+						//printf("%s nNVROrDecoder: %d\n", __func__, g_deviceInfo.nNVROrDecoder);
+						if((sendto(remSocket,(char *)&g_deviceInfo,sizeof(g_deviceInfo),0,(struct sockaddr*)&rem,sizeof(rem))) == SOCKET_ERROR)
+						{
+							//printf("sendto error! %d\n",WSAGetLastError());
+							SockClose(remSocket);
+							continue;
+						}
+						
+						//printf("send : %s\nto : %s\n",buf,inet_ntoa(rem.sin_addr));
+						
+						SockClose(remSocket);
+					}
+					else if(prohdr.byConnType == 0x4)	//0x4  轮巡同步(只对已经使能轮巡的设备有效)
+					{
+						printf("patrol synchronous\n");
+						int ret;
+						
+						SModConfigPreviewParam sConfig;
 
-							usleep(200*1000);
-							sConfig.nIsPatrol = 1;	//再开启
-							
-							ret = ModConfigSetParam(EM_CONFIG_PARA_PREVIEW, &sConfig, 0);
-							if (ret == 0)
+						ret = ModConfigGetParam(EM_CONFIG_PARA_PREVIEW, &sConfig, 0);					
+						if (ret == 0)
+						{
+							if (sConfig.nIsPatrol == 1) //设备已经使能轮巡
 							{
-								SPreviewPatrolPara sPatrolPara;
-								sPatrolPara.emPreviewMode = sConfig.nPatrolMode;
-								sPatrolPara.nInterval = sConfig.nInterval;
-								sPatrolPara.nIsPatrol = sConfig.nIsPatrol;
-								sPatrolPara.nStops = sConfig.nStops;
-								memcpy(sPatrolPara.pnStopModePara, sConfig.pnStopModePara, sConfig.nStops);
-								ModPreviewSetPatrol(&sPatrolPara);
+								sConfig.nIsPatrol = 0;	//先关闭
+								
+								ret = ModConfigSetParam(EM_CONFIG_PARA_PREVIEW, &sConfig, 0);
+								if (ret == 0)
+								{
+									SPreviewPatrolPara sPatrolPara;
+									sPatrolPara.emPreviewMode = sConfig.nPatrolMode;
+									sPatrolPara.nInterval = sConfig.nInterval;
+									sPatrolPara.nIsPatrol = sConfig.nIsPatrol;
+									sPatrolPara.nStops = sConfig.nStops;
+									memcpy(sPatrolPara.pnStopModePara, sConfig.pnStopModePara, sConfig.nStops);
+									ModPreviewSetPatrol(&sPatrolPara);
+								}
+
+								usleep(200*1000);
+								sConfig.nIsPatrol = 1;	//再开启
+								
+								ret = ModConfigSetParam(EM_CONFIG_PARA_PREVIEW, &sConfig, 0);
+								if (ret == 0)
+								{
+									SPreviewPatrolPara sPatrolPara;
+									sPatrolPara.emPreviewMode = sConfig.nPatrolMode;
+									sPatrolPara.nInterval = sConfig.nInterval;
+									sPatrolPara.nIsPatrol = sConfig.nIsPatrol;
+									sPatrolPara.nStops = sConfig.nStops;
+									memcpy(sPatrolPara.pnStopModePara, sConfig.pnStopModePara, sConfig.nStops);
+									ModPreviewSetPatrol(&sPatrolPara);
+								}
 							}
 						}
 					}
+					else
+					{
+						//do nothing
+					}
 				}
-				else
-				{
-					//do nothing
-				}
+			#endif
+				
+				usleep(100*1000);
 			}
+			
 		}
-		
+
+		drop_membership(serSocket);
 		SockClose(serSocket);
+		serSocket = INVALID_SOCKET;
 		return 0;
 	} 
 	else if(type == CTRL_DEVICESEARCH_ACKCLIENT)
@@ -1590,6 +1692,7 @@ u16 CPLibInit(u16 wPort)
 	//printf("hehe3\n");
 	
 	CreateMutexHandle(&g_hSyncMutex);
+	CreateMutexHandle(&g_Mutex_multicast);
 	SemBCraete(&g_hSyncSem);
 	SemTake(g_hSyncSem);
 	

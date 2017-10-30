@@ -21287,7 +21287,7 @@ void AlarmListAdd(u8 chanel,ALARMLISTTYPE cmd,u8 status)
 	}
 	else if(cmd == EM_ALRM_ALARM_IPCEXT)
 	{
-		printf("m_byIPCExtSensor[%d].current: %d\n", chanel, g_cAlarmListObj.m_byIPCExtSensor[chanel].current);
+		//printf("m_byIPCExtSensor[%d].current: %d\n", chanel, g_cAlarmListObj.m_byIPCExtSensor[chanel].current);
 		if(chanel >= GetVideoMainNum())
 		{
 			g_cAlarmListObj.m_Mutex.Leave();
@@ -21296,12 +21296,12 @@ void AlarmListAdd(u8 chanel,ALARMLISTTYPE cmd,u8 status)
 		
 		if(!g_cAlarmListObj.m_byIPCExtSensor[chanel].current)
 		{
-			printf("chn%d IPCExtSensor current set, still_stamp: %d\n", chanel, g_cAlarmListObj.m_byIPCExtSensor[chanel].still_stamp);
+			//printf("chn%d IPCExtSensor current set, still_stamp: %d\n", chanel, g_cAlarmListObj.m_byIPCExtSensor[chanel].still_stamp);
 			if (!g_cAlarmListObj.m_byIPCExtSensor[chanel].still_stamp)
 			{
 				g_cAlarmListObj.m_bChanged = TRUE;
 				g_cAlarmListObj.m_byIPCExtSensor[chanel].still_stamp = 1;
-				printf("chn%d IPCExtSensor still_stamp set\n", chanel);
+				//printf("chn%d IPCExtSensor still_stamp set\n", chanel);
 			}
 		}
 		
@@ -21561,7 +21561,7 @@ void AlarmListDelete(u8 chanel,ALARMLISTTYPE cmd,u8 status)
 		}
 		*/
 		g_cAlarmListObj.m_byIPCExtSensor[chanel].current= 0;
-		printf("chn%d IPCExtSensor current clear\n", chanel);
+		//printf("chn%d IPCExtSensor current clear\n", chanel);
 	}
 	else if(cmd == EM_ALRM_ALARM_IPCCOVER)
 	{

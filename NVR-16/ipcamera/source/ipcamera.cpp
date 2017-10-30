@@ -903,12 +903,27 @@ unsigned int ipc_cover_alarm;
 
 unsigned int IPC_get_alarm_IPCExt(void)
 {
+#if 0
 	unsigned int tmp;
 
 	tmp = ipc_ext_alarm;
 	ipc_ext_alarm = 0;
 	
 	return tmp;	
+#else
+	int chn;
+	unsigned int tmp = 0;
+	
+	for (chn = 0; chn < g_chn_count; chn++)
+	{
+		if (KLW_get_alarm_IPCExt(chn))
+		{
+			tmp |= 1<<chn;
+		}
+	}
+
+	return tmp;
+#endif
 }
 unsigned int  IPC_get_alarm_IPCCover(void)
 {

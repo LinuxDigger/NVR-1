@@ -1601,8 +1601,8 @@ void CheckAlarmIPCExtSensors(SAlarmEvent *psAlarmEvent, FNALARMCB pfnAlarmCb, in
     u8 nEnable, nDelay;
 	
     nEventSatus = tl_get_alarm_IPCExt();
-	if (nEventSatus)
-		printf("IPCExt alarmin = 0x%04x\n", nEventSatus);
+	//if (nEventSatus)
+	//	printf("IPCExt alarmin = 0x%04x\n", nEventSatus);
     //printf("%s:%d nChannels:%d\n", __FUNCTION__, __LINE__, psAlarmEvent->nChannels);
     for (i = 0;i < psAlarmEvent->nChannels; i++)
     {
@@ -1612,10 +1612,10 @@ void CheckAlarmIPCExtSensors(SAlarmEvent *psAlarmEvent, FNALARMCB pfnAlarmCb, in
 		nDelay = psAlarmChn->sAlarmPara.sAlaIPCExtSensorPara.nDelay;
 		psAlarmChn->nSetChangeTimesLast = psAlarmChn->nSetChangeTimes;
 		//printf("chn[%d], emType = %d\n", i, emType);
-		if ((nEventSatus >> i) & 1)
-		{
-			printf("yg IPCExt alarmin chn%d nEnable: %d, nDelay: %d\n", i, nEnable, nDelay);
-		}
+		//if ((nEventSatus >> i) & 1)
+		//{
+		//	printf("yg IPCExt alarmin chn%d nEnable: %d, nDelay: %d\n", i, nEnable, nDelay);
+		//}
 		RefreshStatus(nEnable, 1, nDelay, (nEventSatus >> i) & 1, psAlarmChn);
         
         	AlarmEventCallback(psAlarmChn, pfnAlarmCb, EM_ALARM_EVENT_IPCEXT, i, fd485);

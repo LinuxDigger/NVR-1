@@ -2423,6 +2423,10 @@ s32 NetComm_WritePara( SNetPara* pConfig )
 				printf("AddDNSServer failed!\n");
 			}
 		}
+
+		//修改IP 后，需要重新创建响应CMS搜索的socket
+		//printf("%s RecreateMulticastSocket\n", __func__);
+		RecreateMulticastSocket();
 	}
 	
 	memcpy( pPara, pConfig, sizeof(SNetPara) );

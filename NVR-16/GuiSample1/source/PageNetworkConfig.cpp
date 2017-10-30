@@ -930,7 +930,7 @@ void CPageNetworkConfig::OnClickBtn()
 				{
 					if(curID==0)
 					{
-						BizNetWriteCfg((SBizNetPara*)&sPIns);
+						BizNetWriteCfg((SBizNetPara*)&sPIns);//设置IP等相关信息
 					}
 					
 					const char *pszRslt = 0;
