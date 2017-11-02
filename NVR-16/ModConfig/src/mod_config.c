@@ -15172,7 +15172,7 @@ s32 ConfigGetNetParam(SModConfigNetParam* para, s32 nId, s8* pFilepath)
 //yaogang modify 20151222
 #define PRO_TYPE_NVR		0X100//ËÑË÷²¢Ìí¼ÓNVR
 
-#define IPC_PROTOCOL_TEST //test record disk error by yaogang 20170222
+//#define IPC_PROTOCOL_TEST //test record disk error by yaogang 20170222
 #ifdef IPC_PROTOCOL_TEST
 #define PRO_TYPE_IPC_TEST	0X200//test record disk error by yaogang 20170222
 #endif

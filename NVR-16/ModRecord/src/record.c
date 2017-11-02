@@ -1323,7 +1323,7 @@ void RecordStatusManagerFxn()
 			}
 			else
 			{
-				//printf("**********RecordReadMsgQueue[0] msg:%d, key:%d\n", sMsg.nMsg, sMsg.nKey);
+				//printf("**********RecordReadMsgQueue[0] chn: %d, msg:%d, key:%d\n", sMsg.nChn, sMsg.nMsg, sMsg.nKey);
 				switch(sMsg.nMsg)
 				{
 					case EM_REC_SETSCHPARA:
@@ -2284,7 +2284,15 @@ void RecordMainFxn(void* ID)
 				fprintf(stderr, "RecordReadMsgQueue[%d] error!!!\n", nMsgQID);
 				continue;
 			}
-			else if(flag_force_writefile[sMsg.nChn])
+			
+		#if 0
+			if (EM_REC_READ_BUF != sMsg.nMsg)
+			{
+				printf("RecordReadMsgQueue[1] chn: %d, msg:%d, key:%d\n", sMsg.nChn, sMsg.nMsg, sMsg.nKey);			
+			}
+		#endif	
+		
+			if(flag_force_writefile[sMsg.nChn])
 			{
 				if(EM_REC_RESUME_REC == sMsg.nMsg)
 				{
@@ -3092,8 +3100,8 @@ void RecordMainFxn(void* ID)
 									printf("bad disk dev: %s\n", diskname);
 
 									#if 1
-									
-									report_disk_err(diskname);
+									//暂时去掉坏盘标记
+									//report_disk_err(diskname);
 									
 									#else
 									for(i=0; i<MAX_HDD_NUM; i++)

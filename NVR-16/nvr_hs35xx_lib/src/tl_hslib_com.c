@@ -10,6 +10,7 @@
 #include "vio_common.h"
 #include "lib_vdec.h"
 #include "circlebuf.h"
+#include "mod/mod_record.h"
 
 
 extern int venc_init(void);	//come form lib_venc.c
@@ -2862,6 +2863,7 @@ int DealStreamState(int chn, real_stream_state_e msg)
 			
 			#ifdef	UsePreviewQueue
 			//printf("chn%d sub stream lost, bySubStreamOpen: %d\n",chn+ARG_VI_NUM_MAX, plib_gbl_info->bySubStreamOpen[chn]);
+			//printf("chn%d sub stream lost or stop\n", chn+ARG_VI_NUM_MAX);
 			//yaogang modify 20150306
 			if (plib_gbl_info->bySubStreamOpen[chn])
 			{
@@ -2929,6 +2931,7 @@ int DealStreamState(int chn, real_stream_state_e msg)
 		#ifdef	UsePreviewQueue
 			//yaogang modify 20150306
 			//printf("%s start chn%d\n", __func__, chn+ ARG_VI_NUM_MAX);
+			//printf("chn%d sub stream start\n", chn+ARG_VI_NUM_MAX);
 			memset(&PreviewMsg, 0, sizeof(PreviewMsg));
 			PreviewMsg.chn = chn + ARG_VI_NUM_MAX;
 			PreviewMsg.type = TypeStartChn;
@@ -2982,6 +2985,9 @@ int DealStreamState(int chn, real_stream_state_e msg)
 					
 		#ifdef	UsePreviewQueue
 			//printf("chn%d main stream lost, byMainStreamOpen: %d\n",chn, plib_gbl_info->byMainStreamOpen[chn]);
+			printf("chn%d main stream lost or stop\n", chn);
+			ModRecordPause(chn);
+			
 			//yaogang modify 20150306
 			if (plib_gbl_info->byMainStreamOpen[chn])
 			{
@@ -3048,6 +3054,8 @@ int DealStreamState(int chn, real_stream_state_e msg)
 		#ifdef	UsePreviewQueue
 			//yaogang modify 20150306
 			//printf("%s start chn%d\n", __func__, chn);
+			printf("chn%d main stream start\n", chn);
+			ModRecordResume(chn);
 			
 			memset(&PreviewMsg, 0, sizeof(PreviewMsg));
 			PreviewMsg.chn = chn;

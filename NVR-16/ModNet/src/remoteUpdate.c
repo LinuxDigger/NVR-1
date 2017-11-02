@@ -264,7 +264,7 @@ void remoteUpdate_ProgNotify(u8 pos)
 		
 		oldpos = pos;
 		
-		printf("sock %d remote update notfiy progress %d\n", sock, oldpos);
+		//printf("sock %d remote update notfiy progress %d\n", sock, oldpos);
 	}
 	//send(nUpdateSock,&backCode,sizeof(backCode),0);
 }

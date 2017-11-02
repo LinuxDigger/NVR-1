@@ -489,7 +489,7 @@ int init_disk_manager(disk_manager *hdd_manager)
 			strcpy(hdd_manager->hinfo[nDiskFound].disk_name, diskname);
 			strcpy(hdd_manager->hinfo[nDiskFound].disk_sn, DiskSN);
 
-			#if 1
+			#if 0//暂时去掉坏盘标记
 			
 			//坏盘判断
 			// 1、第二扇区是否有坏盘标记
